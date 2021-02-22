@@ -9,6 +9,7 @@ import os
 path = os.getcwd()
 all_files = glob.glob(path + "/*.csv")
 exp_filename = "combined_tse.csv"
+outdir = os.path.join(path,'result')
 
 li = []
 
@@ -32,7 +33,11 @@ for filename in all_files:
 
 #%%
 frame = pd.concat(li, axis=0, ignore_index=True)
-frame.to_csv('all_csvs', index=1, encoding='utf-8')
+if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
+fullname = os.path.join(outdir, exp_filename)    
+frame.to_csv(fullname, index=1, encoding='utf-8')
 frame.head()
 
 # %%
