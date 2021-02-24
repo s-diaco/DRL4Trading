@@ -1,0 +1,20 @@
+# Model Building Requirements
+pandas
+stockstats
+scikit-learn
+gym
+# tensorflow==1.15.4
+
+joblib
+
+# plot
+matplotlib
+
+# testing requirements
+pytest
+
+# packaging
+setuptools
+
+
+
