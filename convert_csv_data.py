@@ -1,9 +1,9 @@
 # %% common library
-import pandas as pd
-import numpy as np
-import pandas as pd
 import glob
 import os
+
+import numpy as np
+import pandas as pd
 
 # %% csv files
 in_dir = 'import_csv'
@@ -31,7 +31,7 @@ for filename in all_files:
     cols = ['datadate', 'tic', 'prccd', 'ajexdi',
             'prcod', 'prchd', 'prcld', 'cshtrd']
     df = df[cols]
-    df = df[df['datadate'] >= '20090101']
+    # df = df[df['datadate'] >= '20090101']
     li.append(df)
 
 # %%
