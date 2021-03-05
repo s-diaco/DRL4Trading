@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd
 
 
+# model
+import model.models as mdl
+
 # preprocessor
 import preprocessing.preprocessors as preproc
 import logging
@@ -52,14 +55,10 @@ def run_model() -> None:
     validation_window = 63
 
     # Ensemble Strategy
-<< << << < HEAD
-# mdl.run_ensemble_strategy(df=data, unique_trade_date=unique_trade_date, rebalance_window=rebalance_window, validation_window=validation_window)
-== == == =
-mdl.run_ensemble_strategy(df=data, unique_trade_date=unique_trade_date,
-                          rebalance_window=rebalance_window, validation_window=validation_window)
->>>>>> > f5a9a128cbd04ffa4e9fb59112ce333c30bab0b8
+    mdl.run_ensemble_strategy(df=data, unique_trade_date=unique_trade_date,
+                              rebalance_window=rebalance_window, validation_window=validation_window)
 
-#_logger.info(f"saving model version: {_version}")
+    #_logger.info(f"saving model version: {_version}")
 
 
 if __name__ == "__main__":
