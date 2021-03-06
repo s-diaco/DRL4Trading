@@ -3,6 +3,7 @@ pandas
 stockstats
 scikit-learn
 gym
+finrl
 # tensorflow==1.15.4
 
 joblib
