@@ -20,20 +20,12 @@ from finrl.config import config
 from finrl.marketdata.yahoodownloader import YahooDownloader
 from finrl.preprocessing.preprocessors import FeatureEngineer
 from finrl.preprocessing.data import data_split
-from finrl.env.env_stocktrading_v2 import StockTradingEnvV2
+from finrl.env.env_stocktrading import StockTradingEnv
 from finrl.model.models import DRLAgent
 from finrl.trade.backtest import backtest_plot, backtest_stats
 
 from pprint import pprint
-
-
-
-# <a id='1.4'></a>
-# ## 2.4. Create Folders
-
 # In[4]:
-
-
 import os
 if not os.path.exists("./" + config.DATA_SAVE_DIR):
     os.makedirs("./" + config.DATA_SAVE_DIR)
@@ -44,45 +36,12 @@ if not os.path.exists("./" + config.TENSORBOARD_LOG_DIR):
 if not os.path.exists("./" + config.RESULTS_DIR):
     os.makedirs("./" + config.RESULTS_DIR)
 
-
-# <a id='2'></a>
-# # Part 3. Download Data
-# Yahoo Finance is a website that provides stock data, financial news, financial reports, etc. All the data provided by Yahoo Finance is free.
-# * FinRL uses a class **YahooDownloader** to fetch data from Yahoo Finance API
-# * Call Limit: Using the Public API (without authentication), you are limited to 2,000 requests per hour per IP (or up to a total of 48,000 requests a day).
-# 
-
-# 
-# 
-# -----
-# class YahooDownloader:
-#     Provides methods for retrieving daily stock data from
-#     Yahoo Finance API
-# 
-#     Attributes
-#     ----------
-#         start_date : str
-#             start date of the data (modified from config.py)
-#         end_date : str
-#             end date of the data (modified from config.py)
-#         ticker_list : list
-#             a list of stock tickers (modified from config.py)
-# 
-#     Methods
-#     -------
-#     fetch_data()
-#         Fetches data from yahoo API
-# 
-
 # In[5]:
-
 
 # from config.py start_date is a string
 config.START_DATE
 
-
 # In[6]:
-
 
 # from config.py end_date is a string
 config.END_DATE
