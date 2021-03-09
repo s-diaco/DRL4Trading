@@ -69,42 +69,34 @@ fe = FeatureEngineer(
                     tech_indicator_list = config.TECHNICAL_INDICATORS_LIST,
                     use_turbulence=True,
                     user_defined_feature = False)
-
 processed = fe.preprocess_data(df)
 
+# %% Show turbulence
+# if error open VSCode Settings (JSON) and change 
+# "terminal.integrated.inheritEnv" to true
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+df = plotdf=processed[processed['tic']=='JPM']
+df.plot(x="date", y=["turbulence", "close"])
+plt.show()
 
 # In[10]:
-
-
 processed['log_volume'] = np.log(processed.volume*processed.close)
 processed['change'] = (processed.close-processed.open)/processed.close
 processed['daily_variance'] = (processed.high-processed.low)/processed.close
 processed.head()
 
-
-# <a id='4'></a>
-# # Part 5. Design Environment
-# Considering the stochastic and interactive nature of the automated stock trading tasks, a financial task is modeled as a **Markov Decision Process (MDP)** problem. The training process involves observing stock price change, taking an action and reward's calculation to have the agent adjusting its strategy accordingly. By interacting with the environment, the trading agent will derive a trading strategy with the maximized rewards as time proceeds.
-# 
-# Our trading environments, based on OpenAI Gym framework, simulate live stock markets with real market data according to the principle of time-driven simulation.
-# 
-# The action space describes the allowed actions that the agent interacts with the environment. Normally, action a includes three actions: {-1, 0, 1}, where -1, 0, 1 represent selling, holding, and buying one share. Also, an action can be carried upon multiple shares. We use an action space {-k,…,-1, 0, 1, …, k}, where k denotes the number of shares to buy and -k denotes the number of shares to sell. For example, "Buy 10 shares of AAPL" or "Sell 10 shares of AAPL" are 10 or -10, respectively. The continuous action space needs to be normalized to [-1, 1], since the policy is defined on a Gaussian distribution, which needs to be normalized and symmetric.
-
 # ## Training data split: 2009-01-01 to 2018-12-31
 # ## Trade data split: 2019-01-01 to 2020-09-30
-
 # In[11]:
-
-
 train = data_split(processed, '2009-01-01','2019-01-01')
 trade = data_split(processed, '2019-01-01','2021-01-01')
 print(len(train))
 print(len(trade))
 
-
 # In[12]:
-
-
 import numpy as np
 import pandas as pd
 from gym.utils import seeding
@@ -116,18 +108,7 @@ from copy import deepcopy
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pickle
-from stable_baselines3.common.vec_env import DummyVecEnv
-import numpy as np
-import pandas as pd
-from gym.utils import seeding
-import gym
-from gym import spaces
-import matplotlib
 import random
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import pickle
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common import logger
 import time
@@ -515,26 +496,20 @@ e_trade_gym = StockTradingEnvV2(df = trade,initial_amount = 1e6,hmax = 5000,
 # 
 
 # In[51]:
-
-
 # for this example, let's do multiprocessing with n_cores-2
+# import multiprocessing
 
-import multiprocessing
-
-n_cores = multiprocessing.cpu_count() - 2
-n_cores = 24
-print(f"using {n_cores} cores")
+# n_cores = multiprocessing.cpu_count() - 2
+# n_cores = 24
+# print(f"using {n_cores} cores")
 
 #this is our training env. It allows multiprocessing
-env_train, _ = e_train_gym.get_multiproc_env(n = n_cores)
-# env_train, _ = e_train_gym.get_sb_env()
-
+# env_train, _ = e_train_gym.get_multiproc_env(n = n_cores)
+env_train, _ = e_train_gym.get_sb_env()
 
 #this is our observation environment. It allows full diagnostics
 env_trade, _ = e_trade_gym.get_sb_env()
 
-
-# <a id='5'></a>
 # # Part 6: Implement DRL Algorithms
 # * The implementation of the DRL algorithms are based on **OpenAI Baselines** and **Stable Baselines**. Stable Baselines is a fork of OpenAI Baselines, with a major structural refactoring, and code cleanups.
 # * FinRL library includes fine-tuned standard DRL algorithms, such as DQN, DDPG,
@@ -542,17 +517,10 @@ env_trade, _ = e_trade_gym.get_sb_env()
 # design their own DRL algorithms by adapting these DRL algorithms.
 
 # In[53]:
-
-
 agent = DRLAgent(env = env_train)
 
-
 # ### Model PPO
-# 
-
 # In[54]:
-
-
 # from torch.nn import Softsign, ReLU
 ppo_params ={'n_steps': 256, 
              'ent_coef': 0.01, 
@@ -572,11 +540,8 @@ model = agent.get_model("ppo",
 
 # model = model.load("scaling_reward.model", env = env_train)
 
-
-# In[55]:
-
-
-model.learn(total_timesteps = 5000000, 
+# In[55]: (total_timesteps = 5000000)
+model.learn(total_timesteps = 1000, 
             eval_env = env_trade, 
             eval_freq = 250,
             log_interval = 1, 
@@ -585,78 +550,44 @@ model.learn(total_timesteps = 5000000,
 
 
 # In[56]:
-
-
 model.save("different.model")
 
-
 # In[57]:
-
-
 data_turbulence = processed[(processed.date<'2019-01-01') & (processed.date>='2009-01-01')]
 insample_turbulence = data_turbulence.drop_duplicates(subset=['date'])
 
-
 # In[58]:
-
-
 insample_turbulence.turbulence.describe()
 
-
 # In[59]:
-
-
 turbulence_threshold = np.quantile(insample_turbulence.turbulence.values,1)
 
 
 # In[60]:
-
-
 turbulence_threshold
-
 
 # ### Trade
 # 
-# DRL model needs to update periodically in order to take full advantage of the data, ideally we need to retrain our model yearly, quarterly, or monthly. We also need to tune the parameters along the way, in this notebook I only use the in-sample data from 2009-01 to 2018-12 to tune the parameters once, so there is some alpha decay here as the length of trade date extends. 
+# DRL model needs to update periodically in order to take full advantage of the data, ideally we need to retrain our model yearly, quarterly, or monthly. We also need to tune the parameters along the way, 
+# in this notebook I only use the in-sample data from 2009-01 to 2018-12 to tune the parameters once, so there is some alpha decay here as the length of trade date extends. 
 # 
 # Numerous hyperparameters – e.g. the learning rate, the total number of samples to train on – influence the learning process and are usually determined by testing some variations.
-
 # In[61]:
-
-
 trade.head()
 
-
 # In[192]:
-
-
-
 e_trade_gym.hmax = 2500
 
-
-
-
 # In[193]:
-
-
 print(len(e_trade_gym.dates))
 
-
 # In[194]:
-
-
 df_account_value, df_actions = DRLAgent.DRL_prediction(model=model,environment = e_trade_gym)
 
-
 # In[195]:
-
-
 df_account_value.shape
 
-
 # In[196]:
-
-
 df_account_value.head(50)
 
 
