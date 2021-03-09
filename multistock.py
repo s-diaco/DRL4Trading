@@ -56,18 +56,13 @@ print(config.DOW_30_TICKER)
 # In[8]:
 
 
-df = YahooDownloader(start_date = '2009-01-01',
-                     end_date = '2021-01-01',
+df = YahooDownloader(start_date = config.START_DATE,
+                     end_date = config.END_DATE,
                      ticker_list = config.DOW_30_TICKER).fetch_data()
 
 
 # # Part 4: Preprocess Data
-# Data preprocessing is a crucial step for training a high quality machine learning model. We need to check for missing data and do feature engineering in order to convert the data into a model-ready state.
-# * Add technical indicators. In practical trading, various information needs to be taken into account, for example the historical stock prices, current holding shares, technical indicators, etc. In this article, we demonstrate two trend-following technical indicators: MACD and RSI.
-# * Add turbulence index. Risk-aversion reflects whether an investor will choose to preserve the capital. It also influences one's trading strategy when facing different market volatility level. To control the risk in a worst-case scenario, such as financial crisis of 2007–2008, FinRL employs the financial turbulence index that measures extreme asset price fluctuation.
-
 # In[9]:
-
 
 fe = FeatureEngineer(
                     use_technical_indicator=True,
