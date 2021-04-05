@@ -9,7 +9,7 @@ from finrl.env.env_stocktrading_cashpenalty import StockTradingEnvCashpenalty
 from finrl.preprocessing.data import data_split
 from finrl.preprocessing.preprocessors import FeatureEngineer
 from finrl.marketdata.yahoodownloader import YahooDownloader
-from finrl.config import config
+from config import config
 import datetime
 import matplotlib.pyplot as plt
 import matplotlib
@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from IPython import get_ipython
 from get_tse_data.tse_data import tse_data
+import tse_backtest_plot.tse_backtest_plot as bt_plt
 
 import logging
 
@@ -167,13 +168,13 @@ if not os.path.exists("./" + config.RESULTS_DIR):
 logging.info(f'Start date: {config.START_DATE}')
 # from config.py end_date is a string
 logging.info(f'End date: {config.END_DATE}')
-logging.info(f'Tickers: {config.DOW_30_TICKER}')
+logging.info(f'Tickers: {config.TSE_TICKER}')
 
 # %%
 
-df = tse_data(start_date='2018-01-01',
-              end_date='2020-01-01',
-              ticker_list=config.DOW_30_TICKER).combine_csv()
+df = tse_data(start_date=config.START_DATE,
+              end_date=config.END_DATE,
+              ticker_list=config.TSE_TICKER).fetch_data()
 
 # %% [markdown]
 # # Part 4: Preprocess Data
@@ -214,8 +215,8 @@ processed.head()
 # Numerous hyperparameters – e.g. the learning rate, the total number of samples to train on – influence the learning process and are usually determined by testing some variations.
 
 # %%
-train = data_split(processed, '2018-01-01', '2019-01-01')
-trade = data_split(processed, '2019-01-01', '2020-01-01')
+train = data_split(processed, config.START_DATE, config.START_TRADE_DATE)
+trade = data_split(processed, config.START_TRADE_DATE, config.END_DATE)
 logging.info(f'Training sample size: {len(train)}')
 logging.info(f'Trading sample size: {len(trade)}')
 
@@ -393,13 +394,10 @@ perf_stats_all = backtest_stats(
 # %%
 print("==============Compare to DJIA===========")
 get_ipython().run_line_magic('matplotlib', 'inline')
-# S&P 500: ^GSPC
-# Dow Jones Index: ^DJI
-# NASDAQ 100: ^NDX
-backtest_plot(df_account_value,
-              baseline_ticker='^DJI',
-              baseline_start='2019-01-01',
-              baseline_end='2020-01-01', value_col_name='total_assets')
+
+bt_plt.backtest_plot(df_account_value,
+              baseline_start=config.START_TRADE_DATE,
+              baseline_end=config.END_DATE, value_col_name='total_assets')
 
 
 # %%

@@ -38,6 +38,7 @@ START_TRADE_DATE = "2019-01-01"
 IN_DIR = 'import_csv'
 CSV_DIR = 'csv_data'
 EXP_FILE_NAME = 'combined_csv.csv'
+TSEI = 'TSEI_20081206_20210405.csv'
 
 # dataset default columns
 DEFAULT_DATA_COLUMNS = ["date", "tic", "close"]
