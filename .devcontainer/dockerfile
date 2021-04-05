@@ -14,3 +14,4 @@ RUN pip install torch==1.8.0+cpu torchvision==0.9.0+cpu \
 COPY requirements.txt /tmp/pip-tmp/
 RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
     && rm -rf /tmp/pip-tmp
+RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/quantopian/pyfolio.git
