@@ -76,26 +76,28 @@ processed.head()
 # %%
 information_cols = ['daily_variance', 'change']
 
-e_train_gym = StockTradingEnvCashpenalty(df=train, initial_amount=1e6, hmax=5000,
+e_train_gym = StockTradingEnvCashpenalty(df=train, initial_amount=1e8, hmax=1e7,
                                          turbulence_threshold=None,
                                          currency='$',
                                          buy_cost_pct=3e-3,
                                          sell_cost_pct=3e-3,
-                                         cash_penalty_proportion=0.2,
+                                         cash_penalty_proportion=0.01,
                                          cache_indicator_data=True,
                                          daily_information_cols=information_cols,
                                          print_verbosity=500,
                                          random_start=True)
 
-e_trade_gym = StockTradingEnvCashpenalty(df=trade, initial_amount=1e6, hmax=5000,
+e_trade_gym = StockTradingEnvCashpenalty(df=trade, initial_amount=1e8, hmax=1e7,
                                          turbulence_threshold=None,
                                          currency='$',
                                          buy_cost_pct=3e-3,
                                          sell_cost_pct=3e-3,
-                                         cash_penalty_proportion=0.2,
+                                         cash_penalty_proportion=0.01,
                                          cache_indicator_data=False,
                                          daily_information_cols=information_cols,
                                          print_verbosity=500,
+                                         discrete_actions=True,
+                                         shares_increment=10,
                                          random_start=False)
 
 # %% Environment for Training
@@ -144,9 +146,6 @@ model.save("trained_models/different3_28_10000.model")
 
 # %% Trade
 trade.head()
-
-# %%
-e_trade_gym.hmax = 2000
 
 # %%
 print(len(e_trade_gym.dates))
