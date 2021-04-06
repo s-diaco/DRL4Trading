@@ -137,10 +137,10 @@ model.learn(total_timesteps=10000,
             n_eval_episodes=1)
 
 # %%
-# model.load("different3_20_20000.model")
+# model.load("trained_models/different3_20_20000.model")
 
 # %%
-model.save("different3_28_10000.model")
+model.save("trained_models/different3_28_10000.model")
 
 # %% Trade
 trade.head()
