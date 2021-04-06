@@ -35,7 +35,7 @@ END_DATE = "2021-01-07"
 
 START_TRADE_DATE = "2019-01-01"
 
-IN_DIR = 'import_csv'
+IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'
 EXP_FILE_NAME = 'combined_csv.csv'
 TSEI = 'TSEI_20081206_20210405.csv'

@@ -35,7 +35,7 @@ END_DATE = "2020-01-01"
 
 START_TRADE_DATE = "2019-01-01"
 
-IN_DIR = 'import_csv'
+IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'
 EXP_FILE_NAME = 'combined_csv.csv'
 
@@ -1251,7 +1251,7 @@ DAX_30_TICKER = [
 
 
 # TSE tickers
-TSE_TICKER = [
+TSE_TICKER_30 = [
     "بترانس",
     "بسويچ",
     "بموتو",
@@ -1282,6 +1282,23 @@ TSE_TICKER = [
     "دلر",
     "سدور",
     "سشمال",
+]
+
+TSE_TICKER_5 = [
+    "بترانس",
+    "بسويچ",
+    "بموتو",
+    "پتاير",
+    "پلاسك",
+]
+
+TSE_TICKER_2 = [
+    "بترانس",
+    "بسويچ",
+]
+
+TSE_TICKER_1 = [
+    "بترانس",
 ]
 
 ############## Stock Ticker Setup ends ##############
