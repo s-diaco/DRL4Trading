@@ -56,9 +56,9 @@ def backtest_plot(
     df = deepcopy(account_value)
     test_returns = get_daily_return(df, value_col_name=value_col_name)
 
-    baseline_df = tse_data(start_date=config.START_DATE,
-              end_date=config.END_DATE,
-              ticker_list=config.TSE_TICKER).get_tse_index()
+    baseline_df = get_baseline(
+        ticker=baseline_ticker, start=baseline_start, end=baseline_end
+    )
 
     baseline_returns = get_daily_return(baseline_df, value_col_name="close")
     with pyfolio.plotting.plotting_context(font_scale=1.1):
@@ -68,10 +68,13 @@ def backtest_plot(
 
 
 def get_baseline(ticker, start, end):
-    dji = YahooDownloader(
-        start_date=start, end_date=end, ticker_list=[ticker]
-    ).fetch_data()
-    return dji
+    if ticker == '^TSEI':
+        index_df = tse_data(start_date=start, end_date=end).get_tse_index()
+    else:
+        index_df = YahooDownloader(
+            start_date=start, end_date=end, ticker_list=[ticker]
+        ).fetch_data()
+    return index_df
 
 
 def trx_plot(df_trade,df_actions,ticker_list):    

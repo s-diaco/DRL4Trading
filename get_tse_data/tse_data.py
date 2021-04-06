@@ -34,31 +34,30 @@ class tse_data:
 
     """
 
-    def __init__(self, start_date: str, end_date: str, ticker_list: list):
+    def __init__(self, start_date: str, end_date: str, ticker_list: list = []):
 
         self.start_date = start_date
         self.end_date = end_date
         self.ticker_list = ticker_list
-
 
     def get_tse_index(self) -> pd.DataFrame:
         logging.info(f'Adding TSEI.')
 
         path = pathlb.Path.cwd()
         tsei_dir = cfg.CSV_DIR
-        tsei_file_name=cfg.TSEI
+        tsei_file_name = cfg.TSEI
         df = pd.read_csv(path/tsei_dir/tsei_file_name,
-                        parse_dates=['date'], header=0,
-                        date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
+                         parse_dates=['date'], header=0,
+                         date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
         cols = ['date', 'open', 'high', 'low', 'close', 'volume', 'tic']
         df = df[cols]
         # create day of the week column (monday = 0)
         df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
-        df['tic']='TSEI'
-        df=df[(df['date'] > self.start_date) & (df['date'] < self.end_date)]
+        df['tic'] = 'TSEI'
+        df = df[(df['date'] > self.start_date) & (df['date'] < self.end_date)]
         logging.info(f'Added TSEI.')
         return df
-            
+
     def tse_downloader(self, tic, base_path):
         """Downloads data  from tsetmc.com
         Parameters
@@ -87,11 +86,10 @@ class tse_data:
         # drop missing data
         df = df.dropna()
         df = df.reset_index(drop=True)
-        
+
         # create day of the week column (monday = 0)
         df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
         return df
-
 
     def fetch_data(self) -> pd.DataFrame:
         logging.basicConfig(
@@ -112,17 +110,17 @@ class tse_data:
             # if there is a downloaded csv file, open it; otherwise download and save a csv file for the ticker
             try:
                 df = pd.read_csv(path/in_dir/tic_fnp, index_col='date',
-                                parse_dates=['date'], header=0,
-                                date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
+                                 parse_dates=['date'], header=0,
+                                 date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
             except:
                 logging.info(f'No downloaded data for {tic}. downloading...')
                 self.tse_downloader(tic, path / in_dir)
                 df = pd.read_csv(path/in_dir/tic_fnp, index_col='date',
-                                parse_dates=['date'], header=0,
-                                date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
+                                 parse_dates=['date'], header=0,
+                                 date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
             if not df.empty:
                 df["tic"] = tic
-                df=self.process_single_tic(df,baseline_df)
+                df = self.process_single_tic(df, baseline_df)
                 li.append(df)
 
         frame = pd.concat(li, axis=0, ignore_index=True)
