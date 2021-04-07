@@ -70,31 +70,20 @@ class tse_data:
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
     def process_single_tic(self, df, ticker, baseline_dates) -> pd.DataFrame:
-        df = df.drop(['count', 'value', 'adjClose'], axis=1)
-
-        # make sure there is data for every day to avoid calendar errors
-        # df = df.resample('1d').pad()
+        # df.rename(columns={'adjClose': 'close', 'close': 'last'}, inplace=True)
         df = df.reindex(baseline_dates)
         df["tic"] = ticker
+        # df["sh_queue"] = (df['high'] == df['low']) & (df['low'] > df['last'])
+        # df["se_queue"] = (df['high'] == df['low']) & (df['high'] < df['last'])
         df = df.reset_index()
-        cols = ['date', 'open', 'high', 'low', 'close', 'volume', 'tic']
-        df = df[cols]
-
-        # convert date to standard string format, easy to filter
-        df["date"] = df.date.apply(lambda x: x.strftime("%Y-%m-%d"))
-
-        # drop missing data
-        # df = df.dropna()
-        df = df.reset_index(drop=True)
-
-        # create day of the week column (monday = 0)
-        df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
+        # create day of the week column (monday = 0+2)
+        df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek+2) % 7
         return df
 
     def fetch_data(self) -> pd.DataFrame:
         logging.basicConfig(
-            format='%(asctime)s - %(message)s', level=logging.INFO)
-        logging.info(f'Please wait.Getting trade data...')
+            format='%(message)s - log: %(asctime)s', level=logging.INFO)
+        logging.info(f'Please wait. Getting trade data...')
 
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR
