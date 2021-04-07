@@ -69,13 +69,13 @@ class tse_data:
         """
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
-    def process_single_tic(self, df, baseline_df) -> pd.DataFrame:
+    def process_single_tic(self, df, ticker, baseline_dates) -> pd.DataFrame:
         df = df.drop(['count', 'value', 'adjClose'], axis=1)
 
         # make sure there is data for every day to avoid calendar errors
-        df = df.resample('1d').pad()
-        new_index = pd.to_datetime(baseline_df['date'])
-        df = df.reindex(new_index)
+        # df = df.resample('1d').pad()
+        df = df.reindex(baseline_dates)
+        df["tic"] = ticker
         df = df.reset_index()
         cols = ['date', 'open', 'high', 'low', 'close', 'volume', 'tic']
         df = df[cols]
@@ -84,7 +84,7 @@ class tse_data:
         df["date"] = df.date.apply(lambda x: x.strftime("%Y-%m-%d"))
 
         # drop missing data
-        df = df.dropna()
+        # df = df.dropna()
         df = df.reset_index(drop=True)
 
         # create day of the week column (monday = 0)
@@ -103,6 +103,7 @@ class tse_data:
         out_dir_all = path / out_dir
         li = []
         baseline_df = self.get_tse_index()
+        new_index = pd.to_datetime(baseline_df['date'])
         for tic in self.ticker_list:
             logging.info(f'Adding file: {tic}.')
             tic_fn = tic+".csv"
@@ -119,8 +120,7 @@ class tse_data:
                                  parse_dates=['date'], header=0,
                                  date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'))
             if not df.empty:
-                df["tic"] = tic
-                df = self.process_single_tic(df, baseline_df)
+                df = self.process_single_tic(df, tic, new_index)
                 li.append(df)
 
         frame = pd.concat(li, axis=0, ignore_index=True)

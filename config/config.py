@@ -1297,7 +1297,7 @@ TSE_TICKER_2 = [
 ]
 
 TSE_TICKER_1 = [
-    "بترانس",
+    "بسويچ",
 ]
 
 ############## Stock Ticker Setup ends ##############
