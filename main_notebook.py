@@ -1,5 +1,11 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
+# %% [markdown]
+#### todo:
+# - add real trade fees
+# - what are the training warnings about
+# - don't buy or sell if there is a queue
+# - calculate total assets with stop-trade stocks in mind
+# - adjust total assets on division and buybacks
+# - devide main notebook to multiple smaller files
 # %%
 import os
 from pprint import pprint
@@ -20,7 +26,7 @@ import tse_backtest_plot.tse_backtest_plot as bt_plt
 import logging
 
 logging.basicConfig(
-    format='%(message)s - log: %(asctime)s', level=logging.INFO)
+    format='%(message)s', level=logging.INFO)
 
 print(pd.__version__)
 
@@ -71,10 +77,7 @@ logging.info(f'Training sample size: {len(train)}')
 logging.info(f'Trading sample size: {len(trade)}')
 
 # %%
-processed.head()
-
-# %%
-information_cols = ['daily_variance', 'change']
+information_cols = ['daily_variance', 'change', 'log_volume']
 
 e_train_gym = StockTradingEnvStopLoss(df=train, initial_amount=1e8, hmax=1e7,
                                          cache_indicator_data=False,
@@ -120,7 +123,7 @@ model = agent.get_model("ppo",
                         policy_kwargs=policy_kwargs, verbose=0)
 
 # %%
-model = model.load("trained_models/different4_7_2000.model", env = env_train)
+# model = model.load("trained_models/different4_7_2000.model", env = env_train)
 
 # %%
 model.learn(total_timesteps=10000,
@@ -131,13 +134,10 @@ model.learn(total_timesteps=10000,
             n_eval_episodes=1)
 
 # %%
-model.save("trained_models/different4_7_10000.model")
+# model.save("trained_models/different4_7_10000.model")
 
 # %% Trade
-trade.head()
-
-# %%
-print(len(e_trade_gym.dates))
+logging.info(f'Trade dates: {len(e_trade_gym.dates)}')
 
 # %%
 df_account_value, df_actions = DRLAgent.DRL_prediction(
@@ -152,7 +152,7 @@ df_account_value.shape
 # %%
 df_account_value.head(50)
 
-# %% 7.Backtest
+# %% 7. Backtest
 # ## 7.1 Backtest Stats
 print("==============Backtest Results===========")
 perf_stats_all = backtest_stats(

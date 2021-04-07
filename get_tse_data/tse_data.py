@@ -70,11 +70,10 @@ class tse_data:
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
     def process_single_tic(self, df, ticker, baseline_dates) -> pd.DataFrame:
-        # df.rename(columns={'adjClose': 'close', 'close': 'last'}, inplace=True)
         df = df.reindex(baseline_dates)
         df["tic"] = ticker
-        # df["sh_queue"] = (df['high'] == df['low']) & (df['low'] > df['last'])
-        # df["se_queue"] = (df['high'] == df['low']) & (df['high'] < df['last'])
+        df["bu_queue"] = (df['high'] == df['low']) & (df['low'] > df['yesterday'])
+        df["se_queue"] = (df['high'] == df['low']) & (df['high'] < df['yesterday'])
         df = df.reset_index()
         # create day of the week column (monday = 0+2)
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek+2) % 7
