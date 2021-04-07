@@ -20,7 +20,7 @@ import tse_backtest_plot.tse_backtest_plot as bt_plt
 import logging
 
 logging.basicConfig(
-    format='%(asctime)s - log - %(message)s', level=logging.INFO)
+    format='%(message)s - log: %(asctime)s', level=logging.INFO)
 
 print(pd.__version__)
 
