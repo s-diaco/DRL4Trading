@@ -1,6 +1,5 @@
 # %% [markdown]
 #### todo:
-# - add real trade fees
 # - what are the training warnings about
 # - don't buy or sell if there is a queue
 # - calculate total assets with stop-trade stocks in mind
@@ -21,78 +20,43 @@ import matplotlib
 import numpy as np
 import pandas as pd
 from IPython import get_ipython
-from get_tse_data.tse_data import tse_data
 import tse_backtest_plot.tse_backtest_plot as bt_plt
 import logging
+from preprocess_tse_data import preprocess_data
 
-logging.basicConfig(
-    format='%(message)s', level=logging.INFO)
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-print(pd.__version__)
-
-# %%
-# matplotlib.use('Agg')
-# get_ipython().run_line_magic('matplotlib', 'inline')
-# %%
-if not os.path.exists("./" + config.DATA_SAVE_DIR):
-    os.makedirs("./" + config.DATA_SAVE_DIR)
-if not os.path.exists("./" + config.TRAINED_MODEL_DIR):
-    os.makedirs("./" + config.TRAINED_MODEL_DIR)
-if not os.path.exists("./" + config.TENSORBOARD_LOG_DIR):
-    os.makedirs("./" + config.TENSORBOARD_LOG_DIR)
-if not os.path.exists("./" + config.RESULTS_DIR):
-    os.makedirs("./" + config.RESULTS_DIR)
+train, trade = preprocess_data()
 
 # %%
-# from config.py start_date is a string
-logging.info(f'Start date: {config.START_DATE}')
-# from config.py end_date is a string
-logging.info(f'End date: {config.END_DATE}')
-logging.info(f'Tickers: {config.TSE_TICKER_30}')
-df = tse_data(start_date=config.START_DATE,
-              end_date=config.END_DATE,
-              ticker_list=config.TSE_TICKER_30).fetch_data()
+information_cols = ["daily_variance", "change", "log_volume"]
 
-# %% 4.Preprocess Data
-fe = FeatureEngineer(
-    use_technical_indicator=False,
-    tech_indicator_list=config.TECHNICAL_INDICATORS_LIST,
-    use_turbulence=False,
-    user_defined_feature=False)
+e_train_gym = StockTradingEnvStopLoss(
+    df=train,
+    initial_amount=1e8,
+    hmax=1e7,
+    cache_indicator_data=False,
+    daily_information_cols=information_cols,
+    print_verbosity=500,
+    buy_cost_pct=3.7e-3,
+    sell_cost_pct=8.8e-3,
+    patient=True,
+)
 
-processed = fe.preprocess_data(df)
-
-# %%
-processed = df
-processed['log_volume'] = np.log(processed.volume*processed.close)
-processed['change'] = (processed.close-processed.open)/processed.close
-processed['daily_variance'] = (processed.high-processed.low)/processed.close
-processed=processed.fillna(0)
-processed.head()
-
-# %% 5.Design Environment
-train = data_split(processed, config.START_DATE, config.START_TRADE_DATE)
-trade = data_split(processed, config.START_TRADE_DATE, config.END_DATE)
-logging.info(f'Training sample size: {len(train)}')
-logging.info(f'Trading sample size: {len(trade)}')
-
-# %%
-information_cols = ['daily_variance', 'change', 'log_volume']
-
-e_train_gym = StockTradingEnvStopLoss(df=train, initial_amount=1e8, hmax=1e7,
-                                         cache_indicator_data=False,
-                                         daily_information_cols=information_cols,
-                                         print_verbosity=500,
-                                         patient=True)
-
-e_trade_gym = StockTradingEnvStopLoss(df=trade, initial_amount=1e8, hmax=1e7,
-                                         cache_indicator_data=False,
-                                         daily_information_cols=information_cols,
-                                         print_verbosity=500,
-                                         discrete_actions=True,
-                                         shares_increment=10,
-                                         patient=True,
-                                         random_start=False)
+e_trade_gym = StockTradingEnvStopLoss(
+    df=trade,
+    initial_amount=1e8,
+    hmax=1e7,
+    cache_indicator_data=False,
+    daily_information_cols=information_cols,
+    print_verbosity=500,
+    discrete_actions=True,
+    shares_increment=10,
+    buy_cost_pct=3.7e-3,
+    sell_cost_pct=8.8e-3,
+    patient=True,
+    random_start=False,
+)
 
 # %% Environment for Training
 # single processing
@@ -106,11 +70,13 @@ agent = DRLAgent(env=env_train)
 
 # %% Model PPO
 # from torch.nn import Softsign, ReLU
-ppo_params = {'n_steps': 256,
-              'ent_coef': 0.0,
-              'learning_rate': 0.000005,
-              'batch_size': 1024,
-              'gamma': 0.99}
+ppo_params = {
+    "n_steps": 256,
+    "ent_coef": 0.0,
+    "learning_rate": 0.000005,
+    "batch_size": 1024,
+    "gamma": 0.99,
+}
 
 policy_kwargs = {
     #     "activation_fn": ReLU,
@@ -118,30 +84,33 @@ policy_kwargs = {
     #     "squash_output": True
 }
 
-model = agent.get_model("ppo",
-                        model_kwargs=ppo_params,
-                        policy_kwargs=policy_kwargs, verbose=0)
+model = agent.get_model(
+    "ppo", model_kwargs=ppo_params, policy_kwargs=policy_kwargs, verbose=0
+)
 
 # %%
 # model = model.load("trained_models/different4_7_2000.model", env = env_train)
 
 # %%
-model.learn(total_timesteps=10000,
-            eval_env=env_trade,
-            eval_freq=500,
-            log_interval=1,
-            tb_log_name='env_stoploss_highlr',
-            n_eval_episodes=1)
+model.learn(
+    total_timesteps=10000,
+    eval_env=env_trade,
+    eval_freq=500,
+    log_interval=1,
+    tb_log_name="env_stoploss_highlr",
+    n_eval_episodes=1,
+)
 
 # %%
 # model.save("trained_models/different4_7_10000.model")
 
 # %% Trade
-logging.info(f'Trade dates: {len(e_trade_gym.dates)}')
+logging.info(f"Trade dates: {len(e_trade_gym.dates)}")
 
 # %%
 df_account_value, df_actions = DRLAgent.DRL_prediction(
-    model=model, environment=e_trade_gym)
+    model=model, environment=e_trade_gym
+)
 
 # %%
 df_actions.head()
@@ -156,17 +125,20 @@ df_account_value.head(50)
 # ## 7.1 Backtest Stats
 print("==============Backtest Results===========")
 perf_stats_all = backtest_stats(
-    account_value=df_account_value, value_col_name='total_assets')
+    account_value=df_account_value, value_col_name="total_assets"
+)
 
 # %%
 # ## 7.2 Backtest Plot
 print("==============Compare to baseline===========")
-get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic("matplotlib", "inline")
 
-bt_plt.backtest_plot(df_account_value,
-                     baseline_ticker='^TSEI',
-                     baseline_start=config.START_TRADE_DATE,
-                     baseline_end=config.END_DATE,
-                     value_col_name='total_assets')
+bt_plt.backtest_plot(
+    df_account_value,
+    baseline_ticker="^TSEI",
+    baseline_start=config.START_TRADE_DATE,
+    baseline_end=config.END_DATE,
+    value_col_name="total_assets",
+)
 
 # %%
