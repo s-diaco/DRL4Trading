@@ -5,12 +5,13 @@
 # - calculate total assets with stop-trade stocks in mind
 # - adjust total assets on division and buybacks
 # - devide main notebook to multiple smaller files
+# - get index info from tsetmc.com
 # %%
 import os
 from pprint import pprint
 from finrl.trade.backtest import backtest_stats
 from finrl.model.models import DRLAgent
-from finrl.env.env_stocktrading_stoploss import StockTradingEnvStopLoss
+from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from finrl.preprocessing.data import data_split
 from finrl.preprocessing.preprocessors import FeatureEngineer
 from config import config
@@ -31,7 +32,7 @@ train, trade = preprocess_data()
 # %%
 information_cols = ["daily_variance", "change", "log_volume"]
 
-e_train_gym = StockTradingEnvStopLoss(
+e_train_gym = StockTradingEnvTSEStopLoss(
     df=train,
     initial_amount=1e8,
     hmax=1e7,
@@ -43,7 +44,7 @@ e_train_gym = StockTradingEnvStopLoss(
     patient=True,
 )
 
-e_trade_gym = StockTradingEnvStopLoss(
+e_trade_gym = StockTradingEnvTSEStopLoss(
     df=trade,
     initial_amount=1e8,
     hmax=1e7,
@@ -65,7 +66,7 @@ env_train, _ = e_train_gym.get_sb_env()
 # this is our observation environment. It allows full diagnostics
 env_trade, _ = e_trade_gym.get_sb_env()
 
-# %% 6.Implement DRL Algorithms
+# %% 6. Implement DRL Algorithms
 agent = DRLAgent(env=env_train)
 
 # %% Model PPO
