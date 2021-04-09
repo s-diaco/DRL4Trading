@@ -53,7 +53,6 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     processed['log_volume'] = np.log(processed.volume*processed.close)
     processed['change'] = (processed.close-processed.open)/processed.close
     processed['daily_variance'] = (processed.high-processed.low)/processed.close
-    processed=processed.fillna(0)
     logging.info(f'Preprocessed data: \n {processed.head()}')
     
     # 5.Design Environment

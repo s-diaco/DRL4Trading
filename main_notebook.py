@@ -1,8 +1,6 @@
 # %% [markdown]
 #### todo:
 # - what are the training warnings about
-# - don't buy or sell if there is a queue
-# - calculate total assets with stop-trade stocks in mind
 # - adjust total assets on division and buybacks
 # - devide main notebook to multiple smaller files
 # - get index info from tsetmc.com
@@ -41,6 +39,7 @@ e_train_gym = StockTradingEnvTSEStopLoss(
     print_verbosity=500,
     buy_cost_pct=3.7e-3,
     sell_cost_pct=8.8e-3,
+    cash_penalty_proportion=0,
     patient=True,
 )
 
@@ -55,6 +54,7 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
     shares_increment=10,
     buy_cost_pct=3.7e-3,
     sell_cost_pct=8.8e-3,
+    cash_penalty_proportion=0,
     patient=True,
     random_start=False,
 )
