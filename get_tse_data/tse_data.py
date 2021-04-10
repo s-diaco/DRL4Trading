@@ -86,9 +86,6 @@ class tse_data:
         return df
 
     def fetch_data(self) -> pd.DataFrame:
-        logging.basicConfig(format="%(message)s - log: %(asctime)s", level=logging.INFO)
-        logging.info(f"Please wait. Getting trade data...")
-
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR
         exp_filename = cfg.EXP_FILE_NAME
@@ -98,7 +95,7 @@ class tse_data:
         baseline_df = self.get_tse_index()
         new_index = pd.to_datetime(baseline_df["date"])
         for tic in self.ticker_list:
-            logging.info(f"Adding file: {tic}.")
+            logging.info(f"Adding file: {tic}")
             tic_fn = tic + ".csv"
             tic_fnp = Path(tic_fn)
             # if there is a downloaded csv file, open it; otherwise download and save a csv file for the ticker

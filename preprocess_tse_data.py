@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 from IPython import get_ipython
 from get_tse_data.tse_data import tse_data
-import tse_backtest_plot.tse_backtest_plot as bt_plt
 from typing import Tuple
 import logging
 
@@ -35,10 +34,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info(f'Start date: {config.START_DATE}')
     # from config.py end_date is a string
     logging.info(f'End date: {config.END_DATE}')
-    logging.info(f'Tickers: {config.TSE_TICKER_30}')
+    logging.info(f'Tickers: {config.TSE_TICKER_5}')
     df = tse_data(start_date=config.START_DATE,
                 end_date=config.END_DATE,
-                ticker_list=config.TSE_TICKER_30).fetch_data()
+                ticker_list=config.TSE_TICKER_5).fetch_data()
 
     # 4.Preprocess Data
     fe = FeatureEngineer(
