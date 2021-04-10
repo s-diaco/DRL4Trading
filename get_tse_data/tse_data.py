@@ -44,10 +44,12 @@ class tse_data:
         logging.info(f"Adding TSEI.")
 
         path = pathlb.Path.cwd()
-        tsei_dir = cfg.CSV_DIR
+        # tsei_dir = cfg.CSV_DIR
+        # tsei_file_name = cfg.TSEI
+        tsei_dir = cfg.IN_DIR
         tsei_file_name = cfg.TSEI
         df = pd.read_csv(
-            path / tsei_dir / tsei_file_name,
+            path / tsei_dir / "adjusted" / tsei_file_name,
             parse_dates=["date"],
             header=0,
             date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
@@ -75,7 +77,7 @@ class tse_data:
     def process_single_tic(self, df, ticker, baseline_dates) -> pd.DataFrame:
         df = df.reindex(baseline_dates)
         df["tic"] = ticker
-        df["stopped"] = df["close"].isnull()
+        df["stopped"] = df["open"].isnull()
         df["b_queue"] = (df["high"] == df["low"]) & (df["low"] > df["yesterday"])
         df["s_queue"] = (df["high"] == df["low"]) & (df["high"] < df["yesterday"])    
         df=df.fillna(method='ffill')
@@ -85,7 +87,7 @@ class tse_data:
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek + 2) % 7
         return df
 
-    def fetch_data(self) -> pd.DataFrame:
+    def fetch_data(self, adjusted=True) -> pd.DataFrame:
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR
         exp_filename = cfg.EXP_FILE_NAME
@@ -96,7 +98,11 @@ class tse_data:
         new_index = pd.to_datetime(baseline_df["date"])
         for tic in self.ticker_list:
             logging.info(f"Adding file: {tic}")
-            tic_fn = tic + ".csv"
+            # using data from tseclient_v2
+            if adjusted:
+                tic_fn = "adjusted/" + tic + "-ت.csv"
+            else:
+                tic_fn = tic + ".csv"
             tic_fnp = Path(tic_fn)
             # if there is a downloaded csv file, open it; otherwise download and save a csv file for the ticker
             try:
@@ -108,15 +114,18 @@ class tse_data:
                     date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
                 )
             except:
-                logging.info(f"No downloaded data for {tic}. downloading...")
-                self.tse_downloader(tic, path / in_dir)
-                df = pd.read_csv(
-                    path / in_dir / tic_fnp,
-                    index_col="date",
-                    parse_dates=["date"],
-                    header=0,
-                    date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
-                )
+                if adjusted:
+                    logging.error(f"No data for {tic}")
+                else:
+                    logging.info(f"No downloaded data for {tic}. downloading...")
+                    self.tse_downloader(tic, path / in_dir)
+                    df = pd.read_csv(
+                        path / in_dir / tic_fnp,
+                        index_col="date",
+                        parse_dates=["date"],
+                        header=0,
+                        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+                    )
             if not df.empty:
                 df = self.process_single_tic(df, tic, new_index)
                 li.append(df)

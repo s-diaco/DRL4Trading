@@ -1,8 +1,6 @@
 # %% [markdown]
 #### todo:
-# - adjust total assets on division and buybacks
 # - devide main notebook to multiple smaller files
-# - get index info from tsetmc.com
 # %%
 import os
 from pprint import pprint
@@ -34,7 +32,7 @@ e_train_gym = StockTradingEnvTSEStopLoss(
     buy_cost_pct=3.7e-3,
     sell_cost_pct=8.8e-3,
     cash_penalty_proportion=0,
-    patient=True,
+    patient=True
 )
 
 e_trade_gym = StockTradingEnvTSEStopLoss(

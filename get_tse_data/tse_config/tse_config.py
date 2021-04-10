@@ -38,4 +38,4 @@ START_TRADE_DATE = "2019-01-01"
 IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'
 EXP_FILE_NAME = 'combined_csv.csv'
-TSEI = 'TSEI_20081206_20210405.csv'
+TSEI = 'شاخص كل6.csv'
