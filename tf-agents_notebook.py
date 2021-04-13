@@ -157,6 +157,8 @@ try:
 except:
   pass
 
+# policy saver
+saver = policy_saver.PolicySaver(tf_agent.policy)
 # (Optional) Optimize by wrapping some of the code in a graph using TF function.
 tf_agent.train = common.function(tf_agent.train)
 
@@ -186,6 +188,8 @@ for _ in range(num_iterations):
   if step % eval_interval == 0:
     avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
     print('step = {0}: Average Return = {1}'.format(step, avg_return))
+    # save checkpoint
+    saver.save('checkpoints/policy_%d' % tf_agent.train_step_counter.numpy())
     returns.append(avg_return)
 
 # %%
