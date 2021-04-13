@@ -44,8 +44,7 @@ e_train_gym = StockTradingEnvTSEStopLoss(
     print_verbosity=500,
     buy_cost_pct=3.7e-3,
     sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0,
-    patient=True
+    cash_penalty_proportion=0
 )
 
 e_trade_gym = StockTradingEnvTSEStopLoss(
@@ -66,8 +65,10 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
 
 # %% Environment for Training
 
-env_name = "CartPole-v0" # @param {type:"string"}
-num_iterations = 250 # @param {type:"integer"}
+# env_name = "CartPole-v0" # @param {type:"string"}
+logging.info(f'TensorFlow version: {tf.version.VERSION}')
+logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
+num_iterations = 5 # 250 # @param {type:"integer"}
 collect_episodes_per_iteration = 2 # @param {type:"integer"}
 replay_buffer_capacity = 2000 # @param {type:"integer"}
 
@@ -187,7 +188,9 @@ for _ in range(num_iterations):
     print('step = {0}: Average Return = {1}'.format(step, avg_return))
     returns.append(avg_return)
 
-
+# %%
+prediction=tf_agent.policy.action(eval_env.reset())
+logging.info(f'Result: {prediction.action}')
 
 
 
