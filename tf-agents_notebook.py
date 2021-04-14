@@ -12,12 +12,14 @@ import datetime
 import numpy as np
 import pandas as pd
 from IPython import get_ipython
+import matplotlib
+import matplotlib.pyplot as plt
 import backtest_tse.backtesting_tse as backtest
 import logging
 from preprocess_tse_data import preprocess_data
 import tf_agents
 import tensorflow as tf
-
+from tf_agents.drivers import dynamic_episode_driver; # data collection driver
 from tf_agents.agents.reinforce import reinforce_agent
 from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import suite_gym
@@ -35,10 +37,12 @@ from tf_agents.environments import utils
 tf.compat.v1.enable_v2_behavior()
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
-
+# %%
+## Preprocess data
 train, trade = preprocess_data()
 
 # %%
+## Create the envoriments
 information_cols = ["daily_variance", "change", "log_volume"]
 
 e_train_gym = StockTradingEnvTSEStopLoss(
@@ -69,12 +73,11 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
     random_start=False,
 )
 
-# %% Environment for Training
-
+# %% 
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 num_iterations = 5 # 250 # @param {type:"integer"}
-collect_episodes_per_iteration = 2 # @param {type:"integer"}
+collect_steps_per_iteration = 2 # @param {type:"integer"}
 replay_buffer_capacity = 2000 # @param {type:"integer"}
 
 fc_layer_params = (100,)
@@ -82,7 +85,7 @@ fc_layer_params = (100,)
 learning_rate = 1e-3 # @param {type:"number"}
 log_interval = 25 # @param {type:"integer"}
 num_eval_episodes = 10 # @param {type:"integer"}
-eval_interval = 50 # @param {type:"integer"}
+eval_interval = 100 # @param {type:"integer"}
 
 train_py_env = wrap_env(e_train_gym)
 eval_py_env = wrap_env(e_train_gym)
@@ -90,6 +93,8 @@ train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 # utils.validate_py_environment(train_env, episodes=2)
 
+# %%
+## Model
 actor_net = actor_distribution_network.ActorDistributionNetwork(
     train_env.observation_spec(),
     train_env.action_spec(),
@@ -108,15 +113,20 @@ tf_agent = reinforce_agent.ReinforceAgent(
     train_step_counter=train_step_counter)
 tf_agent.initialize()
 
+# Agents contain two policies:
+# for evaluation/deployment 
 eval_policy = tf_agent.policy
+# for data collection
 collect_policy = tf_agent.collect_policy
 
 # %%
+# The most common metric used to evaluate a policy is the average return.
 
-#@test {"skip": true}
+# todo: remove to replace with tf_metrics.AverageReturnMetric
 def compute_avg_return(environment, policy, num_episodes=10):
 
   total_return = 0.0
+  # we usually average this over a few episodes
   for _ in range(num_episodes):
 
     time_step = environment.reset()
@@ -131,13 +141,18 @@ def compute_avg_return(environment, policy, num_episodes=10):
   avg_return = total_return / num_episodes
   return avg_return.numpy()[0]
 
+# collect_data_spec is a Trajectory named tuple containing the observation, action, reward etc.
 replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     data_spec=tf_agent.collect_data_spec,
     batch_size=train_env.batch_size,
     max_length=replay_buffer_capacity)
 
-#@test {"skip": true}
+# policy saver
+saver = policy_saver.PolicySaver(tf_agent.policy)
 
+# todo: remove to replace with train_driver
+# collect an episode using the given data collection policy and save the data 
+# (observations, actions, rewards etc.) as trajectories in the replay buffer.
 def collect_episode(environment, policy, num_episodes):
 
   episode_counter = 0
@@ -155,34 +170,45 @@ def collect_episode(environment, policy, num_episodes):
     if traj.is_boundary():
       episode_counter += 1
 
+# define trajectory collector
+train_episode_count = tf_metrics.NumberOfEpisodes()
+train_total_steps = tf_metrics.EnvironmentSteps()
+train_avg_reward = tf_metrics.AverageReturnMetric(batch_size = train_env.batch_size)
+train_avg_episode_len = tf_metrics.AverageEpisodeLengthMetric(batch_size = train_env.batch_size)
+train_driver = dynamic_episode_driver.DynamicEpisodeDriver(
+  train_env,
+  tf_agent.collect_policy, # NOTE: use PPOPolicy to collect episode
+  observers = [
+    replay_buffer.add_batch,
+    train_episode_count,
+    train_total_steps,
+    train_avg_reward,
+    train_avg_episode_len
+  ], # callbacks when an episode is completely collected
+  num_episodes = collect_steps_per_iteration, # how many episodes are collected in an iteration
+)
 # %%
-#@test {"skip": true}
-try:
-  %%time
-except:
-  pass
-
-# policy saver
-saver = policy_saver.PolicySaver(tf_agent.policy)
+## Training
 # (Optional) Optimize by wrapping some of the code in a graph using TF function.
 tf_agent.train = common.function(tf_agent.train)
 
 # Reset the train step
 tf_agent.train_step_counter.assign(0)
+eval_avg_reward = tf_metrics.AverageReturnMetric(buffer_size = num_eval_episodes)
+eval_avg_episode_len = tf_metrics.AverageEpisodeLengthMetric(buffer_size = num_eval_episodes)
 
 # Evaluate the agent's policy once before training.
-avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
-returns = [avg_return]
+returns = [eval_avg_reward]
 
-for _ in range(num_iterations):
+while train_total_steps.result() < num_iterations:
 
-  # Collect a few episodes using collect_policy and save to the replay buffer.
-  collect_episode(
-      train_env, tf_agent.collect_policy, collect_episodes_per_iteration)
-
+  # Collect a few episodes using train_driver and save to the replay buffer.
+  train_driver.run()
+  # todo: is deprecated
   # Use data from the buffer and update the agent's network.
-  experience = replay_buffer.gather_all()
-  train_loss = tf_agent.train(experience)
+  trajectories = replay_buffer.gather_all()
+  train_loss, _ = tf_agent.train(experience=trajectories)
+   # clear collected episodes right after training
   replay_buffer.clear()
 
   step = tf_agent.train_step_counter.numpy()
@@ -191,15 +217,47 @@ for _ in range(num_iterations):
     print('step = {0}: loss = {1}'.format(step, train_loss.loss))
 
   if step % eval_interval == 0:
-    avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
-    print('step = {0}: Average Return = {1}'.format(step, avg_return))
     # save checkpoint
-    saver.save('checkpoints/policy_%d' % tf_agent.train_step_counter.numpy())
-    returns.append(avg_return)
+    saver.save('checkpoints/policy_%d' % step)
+    # evaluate the updated policy
+    eval_avg_reward.reset()
+    eval_avg_episode_len.reset()
+    eval_driver = dynamic_episode_driver.DynamicEpisodeDriver(
+      eval_env,
+      tf_agent.policy,
+      observers = [
+        eval_avg_reward,
+        eval_avg_episode_len,
+      ],
+      num_episodes = num_eval_episodes, # how many epsiodes are collected in an iteration
+    )
+    eval_driver.run()
+    # todo: delete
+    # avg_return = compute_avg_return(eval_env, tf_agent.policy, num_eval_episodes)
+    # print('step = {0}: Average Return = {1}'.format(step, avg_return))
+    print('step = {0}: Average Return = {1} Average Episode Length = {2}'.format(step, train_avg_reward.result(), train_avg_episode_len.result()))
+    returns.append(train_avg_reward)
+
+# %% 
+## plot
+steps = range(0, num_iterations + 1, eval_interval)
+plt.plot(steps, returns)
+plt.ylabel('Average Return')
+plt.xlabel('Step')
+plt.ylim(top=250)
 
 # %%
-prediction=tf_agent.policy.action(eval_env.reset())
-logging.info(f'Result: {prediction.action}')
+## predict
+num_episodes = 3
+for _ in range(num_episodes):
+  status = eval_env.reset() #time_step
+  policy_state = tf_agent.policy.get_initial_state(eval_env.batch_size)
+  while not status.is_last():
+    # todo: use greedy policy to test
+    action = tf_agent.policy.action(status, policy_state)
+    status = eval_env.step(action.action)
+    logging.info(f'Action: {action}')
+
 
 
 
