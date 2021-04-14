@@ -1,6 +1,7 @@
 # %% [markdown]
 #### todo:
 # - devide main notebook to multiple smaller files
+# - develope a better logging system
 # %%
 import os
 from pprint import pprint
@@ -27,6 +28,11 @@ from tf_agents.networks import actor_distribution_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
+from tf_agents.policies import policy_saver
+from tf_agents.environments.suite_gym import wrap_env
+from tf_agents.environments import utils
+
+tf.compat.v1.enable_v2_behavior()
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
@@ -65,7 +71,6 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
 
 # %% Environment for Training
 
-# env_name = "CartPole-v0" # @param {type:"string"}
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 num_iterations = 5 # 250 # @param {type:"integer"}
@@ -79,8 +84,6 @@ log_interval = 25 # @param {type:"integer"}
 num_eval_episodes = 10 # @param {type:"integer"}
 eval_interval = 50 # @param {type:"integer"}
 
-from tf_agents.environments.suite_gym import wrap_env
-from tf_agents.environments import utils
 train_py_env = wrap_env(e_train_gym)
 eval_py_env = wrap_env(e_train_gym)
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
@@ -89,7 +92,8 @@ eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
 actor_net = actor_distribution_network.ActorDistributionNetwork(
     train_env.observation_spec(),
-    train_env.action_spec())
+    train_env.action_spec(),
+    fc_layer_params=fc_layer_params)
 
 optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 
@@ -103,6 +107,7 @@ tf_agent = reinforce_agent.ReinforceAgent(
     normalize_returns=True,
     train_step_counter=train_step_counter)
 tf_agent.initialize()
+
 eval_policy = tf_agent.policy
 collect_policy = tf_agent.collect_policy
 
