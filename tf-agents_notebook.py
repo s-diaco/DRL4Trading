@@ -123,7 +123,7 @@ TradeDRLAgent.train_eval(
 # %%
 ## Predict
 train_eval_py_env = wrap_env(e_trade_gym)
-TradeDRLAgent.predict_trades("model", e_trade_gym)
+TradeDRLAgent.predict_trades(e_trade_gym)
 
 
 

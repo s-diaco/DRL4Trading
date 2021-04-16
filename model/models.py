@@ -313,9 +313,14 @@ class TradeDRLAgent:
           )
 
   @staticmethod
-  def predict_trades(model, environment):
+  def predict_trades(environment):
     # test_env, test_obs = environment.get_sb_env()
     """make a prediction"""
+    saved_model = policy_saver.PolicySaver(eval_policy)
+    saved_model_path = os.path.join(
+      trained_models/policy_saved_model/policy_000000000
+    )
+    model=saved_model.load(saved_model_path)
     account_memory = []
     actions_memory = []
     environment.reset()
