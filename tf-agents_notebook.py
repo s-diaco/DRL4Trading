@@ -5,6 +5,8 @@
 # - fix parallel envoriments
 # - use correct policy batch size for ppo
 # - implement gym env in python
+# - use drivers and replay buffer for predictions
+# - use greedy policy to test
 # %%
 import os
 from absl import app
@@ -107,12 +109,23 @@ flags.DEFINE_boolean('use_rnns', False,
 FLAGS = flags.FLAGS
 
 train_eval_py_env = wrap_env(e_train_gym)
+trade_py_env = wrap_env(e_trade_gym)
+eval_tf_env = tf_py_environment.TFPyEnvironment(train_eval_py_env)
+trade_tf_env = tf_py_environment.TFPyEnvironment(trade_py_env)
+# %%
+## Agent
+tf_agent = TradeDRLAgent.get_agent(
+        train_eval_py_env=eval_tf_env,
+        )
 
+# %%
+## Train
 TradeDRLAgent.train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
-    train_eval_py_env=train_eval_py_env,
+    train_eval_py_env=eval_tf_env,
+    tf_agent=tf_agent,
     use_rnns=False,
-    num_environment_steps=100,
+    num_environment_steps=50,
     collect_episodes_per_iteration=30,
     # num_parallel_environments=1,
     replay_buffer_capacity=1001,
@@ -122,83 +135,11 @@ TradeDRLAgent.train_eval(
 
 # %%
 ## Predict
-train_eval_py_env = wrap_env(e_trade_gym)
-TradeDRLAgent.predict_trades(e_trade_gym)
+TradeDRLAgent.predict_trades(trade_tf_env)
 
 
 
 
-
-
-# %% 
-## plot
-steps = range(0, num_iterations + 1, eval_interval)
-plt.plot(steps, returns.result().numpy())
-plt.ylabel('Average Return')
-plt.xlabel('Step')
-plt.ylim(top=250)
-
-# %%
-## predict
-num_episodes = 3
-for _ in range(num_episodes):
-  status = eval_env.reset() #time_step
-  policy_state = tf_agent.policy.get_initial_state(eval_env.batch_size)
-  while not status.is_last():
-    # todo: use greedy policy to test
-    action = tf_agent.policy.action(status, policy_state)
-    status = eval_env.step(action.action)
-    logging.info(f'Action: {action}')
-
-
-
-
-
-# %%
-# single processing
-env_train, _ = e_train_gym.get_sb_env()
-
-# this is our observation environment. It allows full diagnostics
-env_trade, _ = e_trade_gym.get_sb_env()
-
-# %% 6. Implement DRL Algorithms
-agent = DRLAgent(env=env_train)
-
-# %% Model PPO
-# from torch.nn import Softsign, ReLU
-ppo_params = {
-    "n_steps": 256,
-    "ent_coef": 0.0,
-    "learning_rate": 0.000005,
-    "batch_size": 1024,
-    "gamma": 0.99,
-}
-
-policy_kwargs = {
-    #     "activation_fn": ReLU,
-    "net_arch": [1024 for _ in range(10)],
-    #     "squash_output": True
-}
-
-model = agent.get_model(
-    "ppo", model_kwargs=ppo_params, policy_kwargs=policy_kwargs, verbose=0
-)
-
-# %%
-# model = model.load("trained_models/different4_7_2000.model", env = env_train)
-
-# %%
-model.learn(
-    total_timesteps=10000,
-    eval_env=env_trade,
-    eval_freq=500,
-    log_interval=1,
-    tb_log_name="env_tse",
-    n_eval_episodes=1,
-)
-
-# %%
-# model.save("trained_models/tse4_10_1000.model")
 
 # %% Trade
 logging.info(f"Trade dates: {len(e_trade_gym.dates)}")

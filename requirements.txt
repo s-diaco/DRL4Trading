@@ -2,7 +2,7 @@
 pandas
 stockstats
 scikit-learn
-gym
+# gym
 tf-agents
 # pyfolio install the last version from github
 finrl
