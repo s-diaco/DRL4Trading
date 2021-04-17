@@ -81,11 +81,11 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
     random_start=False,
 )
 
-# %% Agent
+# %%
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
-# model parameters
+# parameters
 
 # flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'Root directory for writing logs/summaries/checkpoints.')
 # flags.DEFINE_string('env_name', 'HalfCheetah-v2', 'Name of an environment')

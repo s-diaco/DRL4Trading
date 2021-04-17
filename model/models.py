@@ -284,15 +284,18 @@ class TradeDRLAgent:
         'trained_models/policy_saved_model/policy_000000000'
         )
         policy = tf.saved_model.load(policy_path)
-        account_memory = []
-        actions_memory = []
+        # account_memory = []
+        # actions_memory = []
+        transitions = []
         time_step=tf_test_env.reset()
         while not time_step.is_last():
             policy_step = policy.action(time_step)
             time_step = tf_test_env.step(policy_step.action)
-            account_memory = tf_test_env.env_method(method_name="save_asset_memory")
-            actions_memory = tf_test_env.env_method(method_name="save_action_memory")
-        return account_memory[0], actions_memory[0]
+            # account_memory = tf_test_env.env_method(method_name="save_asset_memory")
+            # actions_memory = tf_test_env.env_method(method_name="save_action_memory")
+            transitions.append([time_step, policy_step])
+        # return account_memory[0], actions_memory[0]
+        return transitions
 
 
     def get_agent(
