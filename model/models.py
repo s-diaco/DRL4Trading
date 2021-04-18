@@ -276,7 +276,7 @@ class TradeDRLAgent:
             )
 
     @staticmethod
-    def predict_trades(tf_test_env):
+    def predict_trades(tf_test_env, py_test_env):
         # test_env, test_obs = tf_test_env.get_sb_env()
         """make a prediction"""
         # load policy
@@ -291,11 +291,14 @@ class TradeDRLAgent:
         while not time_step.is_last():
             policy_step = policy.action(time_step)
             time_step = tf_test_env.step(policy_step.action)
+        if time_step.is_last():
+            account_memory=py_test_env.save_asset_memory()
+            actions_memory=py_test_env.save_action_memory()
             # account_memory = tf_test_env.env_method(method_name="save_asset_memory")
             # actions_memory = tf_test_env.env_method(method_name="save_action_memory")
-            transitions.append([time_step, policy_step])
+            # transitions.append([time_step, policy_step])
         # return account_memory[0], actions_memory[0]
-        return transitions
+        return account_memory, actions_memory
 
 
     def get_agent(

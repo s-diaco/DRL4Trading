@@ -6,7 +6,7 @@
 # - use correct policy batch size for ppo
 # - implement gym env in python
 # - use drivers and replay buffer for predictions
-# - use greedy policy to test
+# - use greedy policy to test (what is "eager mode"?)
 # %%
 import os
 from absl import app
@@ -135,7 +135,7 @@ TradeDRLAgent.train_eval(
 
 # %%
 ## Predict
-TradeDRLAgent.predict_trades(trade_tf_env)
+df_account_value, df_actions = TradeDRLAgent.predict_trades(trade_tf_env, trade_py_env)
 
 
 
