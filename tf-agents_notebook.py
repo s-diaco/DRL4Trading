@@ -7,6 +7,7 @@
 # - implement gym env in python
 # - use drivers and replay buffer for predictions
 # - use greedy policy to test (what is "eager mode"?)
+# - policy_000000000 dir
 # %%
 import os
 from absl import app
