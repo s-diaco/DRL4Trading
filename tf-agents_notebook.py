@@ -8,6 +8,7 @@
 # - use drivers and replay buffer for predictions
 # - use greedy policy to test (what is "eager mode"?)
 # - policy_000000000 dir
+# - dont use gather_all
 # %%
 import os
 from absl import app
