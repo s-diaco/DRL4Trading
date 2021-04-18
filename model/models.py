@@ -82,6 +82,7 @@ class TradeDRLAgent:
 
     @gin.configurable
     def train_eval(
+        self,
         root_dir,
         train_eval_tf_env,
         tf_agent,
@@ -153,8 +154,7 @@ class TradeDRLAgent:
 
             train_metrics = step_metrics + [
                 tf_metrics.AverageReturnMetric(batch_size=tf_env.batch_size),
-                tf_metrics.AverageEpisodeLengthMetric(
-                    batch_size=tf_env.batch_size),
+                tf_metrics.AverageEpisodeLengthMetric(batch_size=tf_env.batch_size),
             ]
 
             eval_policy = tf_agent.policy
@@ -170,16 +170,14 @@ class TradeDRLAgent:
                 ckpt_dir=train_dir,
                 agent=tf_agent,
                 global_step=global_step,
-                metrics=metric_utils.MetricsGroup(
-                    train_metrics, "train_metrics"),
+                metrics=metric_utils.MetricsGroup(train_metrics, "train_metrics"),
             )
             policy_checkpointer = common.Checkpointer(
                 ckpt_dir=os.path.join(train_dir, "policy"),
                 policy=eval_policy,
                 global_step=global_step,
             )
-            saved_model = policy_saver.PolicySaver(
-                eval_policy, train_step=global_step)
+            saved_model = policy_saver.PolicySaver(eval_policy, train_step=global_step)
 
             train_checkpointer.initialize_or_restore()
 
@@ -197,7 +195,8 @@ class TradeDRLAgent:
             if use_tf_functions:
                 # TODO(b/123828980): Enable once the cause for slowdown was identified.
                 collect_driver.run = common.function(
-                    collect_driver.run, autograph=False)
+                    collect_driver.run, autograph=False
+                )
                 tf_agent.train = common.function(tf_agent.train, autograph=False)
                 train_step = common.function(train_step)
 
@@ -233,14 +232,15 @@ class TradeDRLAgent:
                     )
 
                 if global_step_val % log_interval == 0:
-                    logging.info("step = %d, loss = %f",
-                                global_step_val, total_loss)
+                    logging.info("step = %d, loss = %f", global_step_val, total_loss)
                     steps_per_sec = (global_step_val - timed_at_step) / (
                         collect_time + train_time
                     )
                     logging.info("%.3f steps/sec", steps_per_sec)
                     logging.info(
-                        "collect_time = %.3f, train_time = %.3f", collect_time, train_time
+                        "collect_time = %.3f, train_time = %.3f",
+                        collect_time,
+                        train_time,
                     )
                     with tf.compat.v2.summary.record_if(True):
                         tf.compat.v2.summary.scalar(
@@ -255,8 +255,8 @@ class TradeDRLAgent:
                     if global_step_val % policy_checkpoint_interval == 0:
                         policy_checkpointer.save(global_step=global_step_val)
                         saved_model_path = os.path.join(
-                            saved_model_dir, "policy_" +
-                                ("%d" % global_step_val).zfill(9)
+                            saved_model_dir,
+                            "policy_" + ("%d" % global_step_val).zfill(9),
                         )
                         saved_model.save(saved_model_path)
 
@@ -280,28 +280,56 @@ class TradeDRLAgent:
         # test_env, test_obs = tf_test_env.get_sb_env()
         """make a prediction"""
         # load policy
-        policy_path = os.path.join(
-        'trained_models/policy_saved_model/policy_000000000'
-        )
+        policy_path = os.path.join("trained_models/policy_saved_model/policy_000000000")
         policy = tf.saved_model.load(policy_path)
         # account_memory = []
         # actions_memory = []
         transitions = []
-        time_step=tf_test_env.reset()
+        time_step = tf_test_env.reset()
         while not time_step.is_last():
             policy_step = policy.action(time_step)
             time_step = tf_test_env.step(policy_step.action)
         if time_step.is_last():
-            account_memory=py_test_env.save_asset_memory()
-            actions_memory=py_test_env.save_action_memory()
+            account_memory = py_test_env.save_asset_memory()
+            actions_memory = py_test_env.save_action_memory()
             # account_memory = tf_test_env.env_method(method_name="save_asset_memory")
             # actions_memory = tf_test_env.env_method(method_name="save_action_memory")
             # transitions.append([time_step, policy_step])
         # return account_memory[0], actions_memory[0]
         return account_memory, actions_memory
 
+    def create_networks(
+        self, train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
+    ):
+        if use_rnns:
+            actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
+                train_eval_tf_env.observation_spec(),
+                train_eval_tf_env.action_spec(),
+                input_fc_layer_params=actor_fc_layers,
+                output_fc_layer_params=None,
+                lstm_size=lstm_size,
+            )
+            value_net = value_rnn_network.ValueRnnNetwork(
+                train_eval_tf_env.observation_spec(),
+                input_fc_layer_params=value_fc_layers,
+                output_fc_layer_params=None,
+            )
+        else:
+            actor_net = actor_distribution_network.ActorDistributionNetwork(
+                train_eval_tf_env.observation_spec(),
+                train_eval_tf_env.action_spec(),
+                fc_layer_params=actor_fc_layers,
+                activation_fn=tf.keras.activations.tanh,
+            )
+            value_net = value_network.ValueNetwork(
+                train_eval_tf_env.observation_spec(),
+                fc_layer_params=value_fc_layers,
+                activation_fn=tf.keras.activations.tanh,
+            )
+        return actor_net, value_net
 
     def get_agent(
+        self,
         train_eval_tf_env,
         # TODO(b/127576522): rename to policy_fc_layers.
         actor_fc_layers=(200, 100),
@@ -319,35 +347,12 @@ class TradeDRLAgent:
         optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         global_step = tf.compat.v1.train.get_or_create_global_step()
 
-        if use_rnns:
-            actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
-                tf_env.observation_spec(),
-                tf_env.action_spec(),
-                input_fc_layer_params=actor_fc_layers,
-                output_fc_layer_params=None,
-                lstm_size=lstm_size,
-            )
-            value_net = value_rnn_network.ValueRnnNetwork(
-                tf_env.observation_spec(),
-                input_fc_layer_params=value_fc_layers,
-                output_fc_layer_params=None,
-            )
-        else:
-            actor_net = actor_distribution_network.ActorDistributionNetwork(
-                tf_env.observation_spec(),
-                tf_env.action_spec(),
-                fc_layer_params=actor_fc_layers,
-                activation_fn=tf.keras.activations.tanh,
-            )
-            value_net = value_network.ValueNetwork(
-                tf_env.observation_spec(),
-                fc_layer_params=value_fc_layers,
-                activation_fn=tf.keras.activations.tanh,
-            )
-
+        actor_net, value_net = self.create_networks(
+            train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
+        )
         tf_agent = ppo_clip_agent.PPOClipAgent(
-            tf_env.time_step_spec(),
-            tf_env.action_spec(),
+            train_eval_tf_env.time_step_spec(),
+            train_eval_tf_env.action_spec(),
             optimizer,
             actor_net=actor_net,
             value_net=value_net,

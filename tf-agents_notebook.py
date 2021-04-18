@@ -115,15 +115,15 @@ eval_tf_env = tf_py_environment.TFPyEnvironment(train_eval_py_env)
 trade_tf_env = tf_py_environment.TFPyEnvironment(trade_py_env)
 # %%
 ## Agent
-tf_agent = TradeDRLAgent.get_agent(
-        train_eval_py_env=eval_tf_env,
+tf_agent = TradeDRLAgent().get_agent(
+        train_eval_tf_env=eval_tf_env,
         )
 
 # %%
 ## Train
-TradeDRLAgent.train_eval(
+TradeDRLAgent().train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
-    train_eval_py_env=eval_tf_env,
+    train_eval_tf_env=eval_tf_env,
     tf_agent=tf_agent,
     use_rnns=False,
     num_environment_steps=50,
@@ -138,17 +138,8 @@ TradeDRLAgent.train_eval(
 ## Predict
 df_account_value, df_actions = TradeDRLAgent.predict_trades(trade_tf_env, trade_py_env)
 
-
-
-
-
 # %% Trade
-logging.info(f"Trade dates: {len(e_trade_gym.dates)}")
-
-# %%
-df_account_value, df_actions = DRLAgent.DRL_prediction(
-    model=model, environment=e_trade_gym
-)
+logging.info(f"Trade dates: {len(trade_py_env.dates)}")
 
 # %%
 logging.info(f"Model actions:\n{df_actions.head()}")
