@@ -19,7 +19,10 @@ def backtest_tse_trades(df_account_value, baseline, start_date, end_date):
 
     # ## 7.2 Backtest Plot
     logging.info("==============Compare to baseline===========")
-    get_ipython().run_line_magic("matplotlib", "inline")
+    ipy = get_ipython()
+    if ipy is not None:
+        ipy.run_line_magic('matplotlib', 'inline')
+    # get_ipython().run_line_magic("matplotlib", "inline")
 
     bt_plt.backtest_plot(
         df_account_value,

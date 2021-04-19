@@ -10,6 +10,7 @@
 # - policy_000000000 dir
 # - dont use gather_all
 # - organize folders created by modules
+# - use original network numbers
 # %% [markdown]
 ## import modules
 import datetime
@@ -37,24 +38,6 @@ tf.compat.v1.enable_v2_behavior()
 # %% [markdown]
 ## Preprocess data
 train, trade = preprocess_data()
-
-# %% todo: delete
-information_cols = ["daily_variance", "change", "log_volume"]
-train_eval_py_env = TradingPyEnv(
-    df=train,
-    initial_amount=1e8,
-    hmax=1e7,
-    cache_indicator_data=False,
-    daily_information_cols=information_cols,
-    print_verbosity=500,
-    buy_cost_pct=3.7e-3,
-    sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0
-)
-
-from tf_agents.environments import utils
-
-utils.validate_py_environment(train_eval_py_env, episodes=3)
 
 # %% [markdown]
 ## Create the envoriments
