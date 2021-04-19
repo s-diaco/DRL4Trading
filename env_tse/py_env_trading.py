@@ -97,14 +97,12 @@ class TradingPyEnv(py_environment.PyEnvironment):
             1 + len(self.assets) + len(self.assets) *
             len(self.daily_information_cols)
         )
-        self.observation_spec = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(self.state_space,)
-        )
+
 
         self._action_spec = array_spec.BoundedArraySpec(shape=(
             len(self.assets),), dtype=np.float32, minimum=-1, maximum=1, name='action')
-        self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(self.state_space,), dtype=np.float32, name='observation')
+        self._observation_spec = array_spec.ArraySpec(
+            shape=(self.state_space,), dtype=np.float64, name='observation')
 
         self.turbulence = 0
         self.episode = -1  # initialize so we can call reset
@@ -120,11 +118,11 @@ class TradingPyEnv(py_environment.PyEnvironment):
             ]
             print("data cached!")
 
-        def action_spec(self):
-            return self._action_spec
+    def action_spec(self):
+        return self._action_spec
 
-        def observation_spec(self):
-            return self._observation_spec
+    def observation_spec(self):
+        return self._observation_spec
 
     def seed(self, seed=None):
         if seed is None:
@@ -166,7 +164,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
             + self.get_date_vector(self.date_index)
         )
         self.state_memory.append(init_state)
-        return init_state
+        return time_step.restart(observation=init_state)
 
     def get_date_vector(self, date, cols=None):
         if (cols is None) and (self.cached_data is not None):
@@ -186,41 +184,8 @@ class TradingPyEnv(py_environment.PyEnvironment):
     def return_terminal(self, reason="Last Date", reward=0):
         state = self.state_memory[-1]
         self.log_step(reason=reason, terminal_reward=reward)
-        # Add outputs to logger interface
-        gl_pct = self.account_information["total_assets"][-1] / \
-            self.initial_amount
-        logger.record("environment/GainLoss_pct", (gl_pct - 1) * 100)
-        logger.record(
-            "environment/total_assets",
-            int(self.account_information["total_assets"][-1]),
-        )
-        reward_pct = self.account_information["total_assets"][-1] / \
-            self.initial_amount
-        logger.record("environment/total_reward_pct", (reward_pct - 1) * 100)
-        logger.record("environment/total_trades", self.sum_trades)
-        logger.record(
-            "environment/actual_num_trades",
-            self.actual_num_trades,
-        )
-        logger.record(
-            "environment/avg_daily_trades",
-            self.sum_trades / (self.current_step),
-        )
-        logger.record(
-            "environment/avg_daily_trades_per_asset",
-            self.sum_trades / (self.current_step) / len(self.assets),
-        )
-        logger.record("environment/completed_steps", self.current_step)
-        logger.record(
-            "environment/sum_rewards", np.sum(
-                self.account_information["reward"])
-        )
-        logger.record(
-            "environment/cash_proportion",
-            self.account_information["cash"][-1]
-            / self.account_information["total_assets"][-1],
-        )
-        return state, reward, True, {}
+        
+        return time_step.truncation(observation=state, reward=reward)
 
     def log_step(self, reason, terminal_reward=None):
         if terminal_reward is None:
@@ -468,8 +433,9 @@ class TradingPyEnv(py_environment.PyEnvironment):
                 self.get_date_vector(self.date_index)
             )
             self.state_memory.append(state)
+            state=np.array(state)
 
-            return state, reward, False, {}
+            return time_step.transition(observation=state, reward=reward)
 
     def save_asset_memory(self):
         if self.current_step == 0:
