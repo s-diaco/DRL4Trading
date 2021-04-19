@@ -20,7 +20,7 @@ import logging
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
 def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    
+
     if not os.path.exists("./" + config.DATA_SAVE_DIR):
         os.makedirs("./" + config.DATA_SAVE_DIR)
     if not os.path.exists("./" + config.TRAINED_MODEL_DIR):

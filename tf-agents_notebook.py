@@ -9,49 +9,36 @@
 # - use greedy policy to test (what is "eager mode"?)
 # - policy_000000000 dir
 # - dont use gather_all
-# %%
-import os
-from absl import app
-from absl import flags
-from absl import logging
-from pprint import pprint
-from finrl.model.models import DRLAgent
-from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
-from config import config
+# - organize folders created by modules
+# %% [markdown]
+## import modules
 import datetime
+import logging
+from pprint import pprint
+
 import numpy as np
 import pandas as pd
-from IPython import get_ipython
-import matplotlib
-import matplotlib.pyplot as plt
-import backtest_tse.backtesting_tse as backtest
-from preprocess_tse_data import preprocess_data
-import tf_agents
 import tensorflow as tf
-from tf_agents.drivers import dynamic_episode_driver; # data collection driver
-from tf_agents.agents.reinforce import reinforce_agent
-from tf_agents.drivers import dynamic_step_driver
-from tf_agents.environments import suite_gym
-from tf_agents.environments import tf_py_environment
-from tf_agents.eval import metric_utils
-from tf_agents.metrics import tf_metrics
-from tf_agents.networks import actor_distribution_network
-from tf_agents.replay_buffers import tf_uniform_replay_buffer
-from tf_agents.trajectories import trajectory
-from tf_agents.utils import common
-from tf_agents.policies import policy_saver
+import tf_agents
+from IPython import get_ipython
+from tf_agents.environments import suite_gym, tf_py_environment
 from tf_agents.environments.suite_gym import wrap_env
-from tf_agents.environments import utils
-from model.models import TradeDRLAgent
 
-# logging.basicConfig(format="%(message)s", level=logging.INFO)
-logging.set_verbosity(logging.INFO)
+import backtest_tse.backtesting_tse as backtest
+from config import config
+from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
+from env_tse.py_env_trading import TradingPyEnv
+from model.models import TradeDRLAgent
+from preprocess_tse_data import preprocess_data
+
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 tf.compat.v1.enable_v2_behavior()
-# %%
+
+# %% [markdown]
 ## Preprocess data
 train, trade = preprocess_data()
 
-# %%
+# %% [markdown]
 ## Create the envoriments
 information_cols = ["daily_variance", "change", "log_volume"]
 
@@ -83,48 +70,25 @@ e_trade_gym = StockTradingEnvTSEStopLoss(
     random_start=False,
 )
 
-# %%
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
-# parameters
-
-# flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'Root directory for writing logs/summaries/checkpoints.')
-# flags.DEFINE_string('env_name', 'HalfCheetah-v2', 'Name of an environment')
-flags.DEFINE_integer('replay_buffer_capacity', 1001,
-                     'Replay buffer capacity per env.')
-flags.DEFINE_integer('num_parallel_environments', 30,
-                     'Number of environments to run in parallel')
-flags.DEFINE_integer('num_environment_steps', 25000000,
-                     'Number of environment steps to run before finishing.')
-flags.DEFINE_integer('num_epochs', 25,
-                     'Number of epochs for computing policy updates.')
-flags.DEFINE_integer(
-    'collect_episodes_per_iteration', 30,
-    'The number of episodes to take in the environment before '
-    'each update. This is the total across all parallel '
-    'environments.')
-flags.DEFINE_integer('num_eval_episodes', 30,
-                     'The number of episodes to run eval on.')
-flags.DEFINE_boolean('use_rnns', False,
-                     'If true, use RNN for policy and value function.')
-FLAGS = flags.FLAGS
-
 train_eval_py_env = wrap_env(e_train_gym)
 trade_py_env = wrap_env(e_trade_gym)
-eval_tf_env = tf_py_environment.TFPyEnvironment(train_eval_py_env)
+train_eval_tf_env = tf_py_environment.TFPyEnvironment(train_eval_py_env)
 trade_tf_env = tf_py_environment.TFPyEnvironment(trade_py_env)
-# %%
+
+# %% [markdown]
 ## Agent
 tf_agent = TradeDRLAgent().get_agent(
-        train_eval_tf_env=eval_tf_env,
+        train_eval_tf_env=train_eval_tf_env,
         )
 
-# %%
+# %% [markdown]
 ## Train
 TradeDRLAgent().train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
-    train_eval_tf_env=eval_tf_env,
+    train_eval_tf_env=train_eval_tf_env,
     tf_agent=tf_agent,
     use_rnns=False,
     num_environment_steps=50,
@@ -135,19 +99,17 @@ TradeDRLAgent().train_eval(
     num_eval_episodes=30
     )
 
-# %%
+# %% [markdown]
 ## Predict
 df_account_value, df_actions = TradeDRLAgent.predict_trades(trade_tf_env, trade_py_env)
 
-# %% Trade
+# %% [markdown]
+## Trade info
 logging.info(f"Trade dates: {len(trade_py_env.dates)}")
-
-# %%
 logging.info(f"Model actions:\n{df_actions.head()}")
-
-# %%
 logging.info(f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
 
-# %% 7. Backtest
+# %% [markdown]
+## Backtest stats & plots
 backtest.backtest_tse_trades(df_account_value, "^TSEI", config.START_TRADE_DATE, config.END_DATE)
 # %%

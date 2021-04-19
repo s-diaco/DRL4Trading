@@ -137,6 +137,7 @@ class tse_data:
         frame.to_csv(fullname, index=1, encoding="utf-8")
         return frame
 
+    # todo: delete
     def combine_csv(self) -> pd.DataFrame:
         logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
         # %% csv files
