@@ -54,17 +54,17 @@ class TradingPyEnv(py_environment.PyEnvironment):
     def __init__(
         self,
         df,
-        buy_cost_pct=3e-3,
-        sell_cost_pct=3e-3,
+        buy_cost_pct=3.7e-3,
+        sell_cost_pct=8.8e-3,
         date_col_name="date",
-        hmax=10,
+        hmax=1e7,
         discrete_actions=False,
         shares_increment=1,
         stoploss_penalty=0.9,
         profit_loss_ratio=2,
         turbulence_threshold=None,
-        print_verbosity=10,
-        initial_amount=1e6,
+        print_verbosity=200,
+        initial_amount=1e8,
         daily_information_cols=["open", "close", "high", "low", "volume"],
         cache_indicator_data=True,
         cash_penalty_proportion=0.1,
@@ -97,7 +97,6 @@ class TradingPyEnv(py_environment.PyEnvironment):
             1 + len(self.assets) + len(self.assets) *
             len(self.daily_information_cols)
         )
-
 
         self._action_spec = array_spec.BoundedArraySpec(shape=(
             len(self.assets),), dtype=np.float32, minimum=-1, maximum=1, name='action')

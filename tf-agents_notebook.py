@@ -11,6 +11,9 @@
 # - dont use gather_all
 # - organize folders created by modules
 # - use original network numbers
+# - replace print with logging is py_env
+# - what is random_seed in 2 files
+# - change num_parallel_environments
 # %% [markdown]
 ## import modules
 import datetime
@@ -24,6 +27,7 @@ import tf_agents
 from IPython import get_ipython
 from tf_agents.environments import suite_gym, tf_py_environment
 from tf_agents.environments.suite_gym import wrap_env
+from tf_agents.environments import utils
 
 import backtest_tse.backtesting_tse as backtest
 from config import config
@@ -37,64 +41,57 @@ tf.compat.v1.enable_v2_behavior()
 
 # %% [markdown]
 ## Preprocess data
-train, trade = preprocess_data()
+df_train, df_trade = preprocess_data()
 
 # %% [markdown]
 ## Create the envoriments
 information_cols = ["daily_variance", "change", "log_volume"]
 
-e_train_gym = StockTradingEnvTSEStopLoss(
-    df=train,
-    initial_amount=1e8,
-    hmax=1e7,
-    cache_indicator_data=False,
-    daily_information_cols=information_cols,
-    print_verbosity=500,
-    buy_cost_pct=3.7e-3,
-    sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0
-)
-
-e_trade_gym = StockTradingEnvTSEStopLoss(
-    df=trade,
-    initial_amount=1e8,
-    hmax=1e7,
-    cache_indicator_data=False,
-    daily_information_cols=information_cols,
-    print_verbosity=500,
-    discrete_actions=True,
-    shares_increment=10,
-    buy_cost_pct=3.7e-3,
-    sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0,
-    patient=True,
-    random_start=False,
-)
-
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
-train_eval_py_env = wrap_env(e_train_gym)
-trade_py_env = wrap_env(e_trade_gym)
-train_eval_tf_env = tf_py_environment.TFPyEnvironment(train_eval_py_env)
-trade_tf_env = tf_py_environment.TFPyEnvironment(trade_py_env)
+
+class TrainEvalPyEnv(TradingPyEnv):
+    def __init__(self):
+        super().__init__(
+            df=df_train,
+            daily_information_cols=information_cols,)
+
+
+class TestPyEnv(TradingPyEnv):
+    def __init__(self):
+        super().__init__(
+            df=df_trade,
+            daily_information_cols=information_cols,
+            cache_indicator_data=False,
+            discrete_actions=True,
+            shares_increment=10,
+            patient=True,
+            random_start=False,)
+
+# %% todo: delete - test the envirement
+# environment = TestPyEnv()
+# utils.validate_py_environment(environment, episodes=2)
 
 # %% [markdown]
 ## Agent
 tf_agent = TradeDRLAgent().get_agent(
-        train_eval_tf_env=train_eval_tf_env,
+        train_eval_py_env=TrainEvalPyEnv,
         )
 
 # %% [markdown]
 ## Train
+tf_agents.system.multiprocessing.enable_interactive_mode()
+
+# %%
 TradeDRLAgent().train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
-    train_eval_tf_env=train_eval_tf_env,
+    py_env=TrainEvalPyEnv,
     tf_agent=tf_agent,
     use_rnns=False,
-    num_environment_steps=50,
+    num_environment_steps=70,
     collect_episodes_per_iteration=30,
-    # num_parallel_environments=1,
+    num_parallel_environments=1,
     replay_buffer_capacity=1001,
     num_epochs=25,
     num_eval_episodes=30
@@ -102,11 +99,10 @@ TradeDRLAgent().train_eval(
 
 # %% [markdown]
 ## Predict
-df_account_value, df_actions = TradeDRLAgent.predict_trades(trade_tf_env, trade_py_env)
+df_account_value, df_actions = TradeDRLAgent.predict_trades(TestPyEnv)
 
 # %% [markdown]
 ## Trade info
-logging.info(f"Trade dates: {len(trade_py_env.dates)}")
 logging.info(f"Model actions:\n{df_actions.head()}")
 logging.info(f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
 

@@ -38,7 +38,7 @@ from absl import logging
 import gin
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-from tf_agents.agents.ppo import ppo_clip_agent
+from tf_agents.agents.ppo import ppo_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import parallel_py_environment
@@ -84,7 +84,7 @@ class TradeDRLAgent:
     def train_eval(
         self,
         root_dir,
-        train_eval_tf_env,
+        py_env,
         tf_agent,
         random_seed=None,
         # TODO(b/127576522): rename to policy_fc_layers.
@@ -95,7 +95,7 @@ class TradeDRLAgent:
         # Params for collect
         num_environment_steps=25000000,
         collect_episodes_per_iteration=30,
-        # num_parallel_environments=30,
+        num_parallel_environments=5,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for train
         num_epochs=25,
@@ -141,10 +141,12 @@ class TradeDRLAgent:
         ):
             if random_seed is not None:
                 tf.compat.v1.set_random_seed(random_seed)
-            eval_tf_env = train_eval_tf_env
-            tf_env = train_eval_tf_env
-            # tf_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-            #   [train_eval_tf_env] * num_parallel_environments))
+
+            
+            eval_py_env = py_env()
+            eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+            tf_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
+               [py_env] * num_parallel_environments))
 
             environment_steps_metric = tf_metrics.EnvironmentSteps()
             step_metrics = [
@@ -276,22 +278,24 @@ class TradeDRLAgent:
             )
 
     @staticmethod
-    def predict_trades(tf_test_env, py_test_env):
-        # test_env, test_obs = tf_test_env.get_sb_env()
+    def predict_trades(py_test_env):
         """make a prediction"""
+        # load envoirement
+        pred_py_env = py_test_env()
+        pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
         # load policy
         policy_path = os.path.join("trained_models/policy_saved_model/policy_000000000")
         policy = tf.saved_model.load(policy_path)
         # account_memory = []
         # actions_memory = []
         transitions = []
-        time_step = tf_test_env.reset()
+        time_step = pred_tf_env.reset()
         while not time_step.is_last():
             policy_step = policy.action(time_step)
-            time_step = tf_test_env.step(policy_step.action)
+            time_step = pred_tf_env.step(policy_step.action)
         if time_step.is_last():
-            account_memory = py_test_env.save_asset_memory()
-            actions_memory = py_test_env.save_action_memory()
+            account_memory = pred_py_env.save_asset_memory()
+            actions_memory = pred_py_env.save_action_memory()
             # account_memory = tf_test_env.env_method(method_name="save_asset_memory")
             # actions_memory = tf_test_env.env_method(method_name="save_action_memory")
             # transitions.append([time_step, policy_step])
@@ -330,7 +334,7 @@ class TradeDRLAgent:
 
     def get_agent(
         self,
-        train_eval_tf_env,
+        train_eval_py_env,
         # TODO(b/127576522): rename to policy_fc_layers.
         actor_fc_layers=(200, 100),
         value_fc_layers=(200, 100),
@@ -344,27 +348,26 @@ class TradeDRLAgent:
         summarize_grads_and_vars=False,
     ):
         """An agent for PPO."""
-        optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
-        global_step = tf.compat.v1.train.get_or_create_global_step()
+
+        agent_py_env = train_eval_py_env()
+        tf_env = tf_py_environment.TFPyEnvironment(agent_py_env)
+        optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
         actor_net, value_net = self.create_networks(
-            train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
+            tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
         )
-        tf_agent = ppo_clip_agent.PPOClipAgent(
-            train_eval_tf_env.time_step_spec(),
-            train_eval_tf_env.action_spec(),
-            optimizer,
-            actor_net=actor_net,
-            value_net=value_net,
-            entropy_regularization=0.0,
-            importance_ratio_clipping=0.2,
-            normalize_observations=False,
-            normalize_rewards=False,
-            use_gae=True,
-            num_epochs=num_epochs,
-            debug_summaries=debug_summaries,
-            summarize_grads_and_vars=summarize_grads_and_vars,
-            train_step_counter=global_step,
-        )
+        tf_agent = ppo_agent.PPOAgent(
+			tf_env.time_step_spec(),
+			tf_env.action_spec(),
+			optimizer,
+			actor_net=actor_net,
+			value_net=value_net,
+			num_epochs=num_epochs,
+			gradient_clipping=0.5,
+			entropy_regularization=1e-2,
+			importance_ratio_clipping=0.2,
+			use_gae=True,
+			use_td_lambda_return=True
+		)
         tf_agent.initialize()
         return tf_agent
