@@ -37,7 +37,6 @@ from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
-tf.compat.v1.enable_v2_behavior()
 
 # %% [markdown]
 ## Preprocess data
@@ -93,7 +92,7 @@ TradeDRLAgent().train_eval(
     use_rnns=False,
     num_environment_steps=70,
     collect_episodes_per_iteration=30,
-    num_parallel_environments=1,
+    num_parallel_environments=4,
     replay_buffer_capacity=1001,
     num_epochs=25,
     num_eval_episodes=30
