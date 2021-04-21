@@ -101,7 +101,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         self._action_spec = array_spec.BoundedArraySpec(shape=(
             len(self.assets),), dtype=np.float32, minimum=-1, maximum=1, name='action')
         self._observation_spec = array_spec.ArraySpec(
-            shape=(self.state_space,), dtype=np.float64, name='observation')
+            shape=(self.state_space,), dtype=np.float32, name='observation')
 
         self.turbulence = 0
         self.episode = -1  # initialize so we can call reset
@@ -160,7 +160,8 @@ class TradingPyEnv(py_environment.PyEnvironment):
         init_state = np.array(
             [self.initial_amount]
             + [0] * len(self.assets)
-            + self.get_date_vector(self.date_index)
+            + self.get_date_vector(self.date_index),
+            dtype=np.float32
         )
         self.state_memory.append(init_state)
         return time_step.restart(observation=init_state)
@@ -427,12 +428,12 @@ class TradingPyEnv(py_environment.PyEnvironment):
                 )[0]
 
             # Update State
-            state = (
+            state = np.array(
                 [coh] + list(holdings_updated) +
-                self.get_date_vector(self.date_index)
+                self.get_date_vector(self.date_index),
+                dtype=np.float32
             )
             self.state_memory.append(state)
-            state=np.array(state)
 
             return time_step.transition(observation=state, reward=reward)
 

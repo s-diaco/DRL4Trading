@@ -5,6 +5,7 @@ from finrl.trade.backtest import backtest_stats
 from finrl.model.models import DRLAgent
 from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from finrl.preprocessing.data import data_split
+from IPython import get_ipython
 import matplotlib.pyplot as plt
 import matplotlib
 import backtest_tse.tse_backtest_plot as bt_plt

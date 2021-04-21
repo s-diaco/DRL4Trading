@@ -85,7 +85,7 @@ class TradeDRLAgent:
         self,
         root_dir,
         py_env,
-        tf_agent,
+        # tf_agent,
         random_seed=None,
         # TODO(b/127576522): rename to policy_fc_layers.
         actor_fc_layers=(200, 100),
@@ -148,6 +148,8 @@ class TradeDRLAgent:
             tf_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
                [py_env] * num_parallel_environments))
 
+            tf_agent=self.get_agent(tf_env)
+
             environment_steps_metric = tf_metrics.EnvironmentSteps()
             step_metrics = [
                 tf_metrics.NumberOfEpisodes(),
@@ -155,8 +157,8 @@ class TradeDRLAgent:
             ]
 
             train_metrics = step_metrics + [
-                tf_metrics.AverageReturnMetric(batch_size=tf_env.batch_size),
-                tf_metrics.AverageEpisodeLengthMetric(batch_size=tf_env.batch_size),
+                tf_metrics.AverageReturnMetric(batch_size=num_parallel_environments),
+                tf_metrics.AverageEpisodeLengthMetric(batch_size=num_parallel_environments),
             ]
 
             eval_policy = tf_agent.policy
@@ -164,7 +166,7 @@ class TradeDRLAgent:
 
             replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
                 tf_agent.collect_data_spec,
-                batch_size=tf_env.batch_size,
+                batch_size=num_parallel_environments,
                 max_length=replay_buffer_capacity,
             )
 
@@ -334,7 +336,7 @@ class TradeDRLAgent:
 
     def get_agent(
         self,
-        train_eval_py_env,
+        tf_env,
         # TODO(b/127576522): rename to policy_fc_layers.
         actor_fc_layers=(200, 100),
         value_fc_layers=(200, 100),
@@ -348,9 +350,6 @@ class TradeDRLAgent:
         summarize_grads_and_vars=False,
     ):
         """An agent for PPO."""
-
-        agent_py_env = train_eval_py_env()
-        tf_env = tf_py_environment.TFPyEnvironment(agent_py_env)
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
         actor_net, value_net = self.create_networks(

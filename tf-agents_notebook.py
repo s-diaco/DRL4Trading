@@ -55,7 +55,9 @@ class TrainEvalPyEnv(TradingPyEnv):
     def __init__(self):
         super().__init__(
             df=df_train,
-            daily_information_cols=information_cols,)
+            daily_information_cols=information_cols,
+            cache_indicator_data=False #todo: delete if needed,
+            )
 
 
 class TestPyEnv(TradingPyEnv):
@@ -75,9 +77,9 @@ class TestPyEnv(TradingPyEnv):
 
 # %% [markdown]
 ## Agent
-tf_agent = TradeDRLAgent().get_agent(
-        train_eval_py_env=TrainEvalPyEnv,
-        )
+# todo: delete - tf_agent = TradeDRLAgent().get_agent(
+#        train_eval_py_env=TrainEvalPyEnv,
+#        )
 
 # %% [markdown]
 ## Train
@@ -87,7 +89,7 @@ tf_agents.system.multiprocessing.enable_interactive_mode()
 TradeDRLAgent().train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
-    tf_agent=tf_agent,
+    # tf_agent=tf_agent,
     use_rnns=False,
     num_environment_steps=70,
     collect_episodes_per_iteration=30,
