@@ -194,24 +194,24 @@ class TradeDRLAgent:
 
                     
             # TODO delete
-            def train_step_2():
-                # Convert the replay buffer to a tf.data.Dataset and iterate through it
+            dataset = replay_buffer.as_dataset(sample_batch_size=1, num_steps=100, single_deterministic_pass=True)
+            def train_step_3():
+                for experiences, _ in dataset:
+                    loss = tf_agent.train(experience=experiences)
+                return loss
+
+            def train_step_4():
                 dataset = replay_buffer.as_dataset(
-                    sample_batch_size=30,
-                        num_steps=64+1,
-                        num_parallel_calls=1
-                ).prefetch(3)
+                        num_steps=2,
+                        sample_batch_size=1,                         
+                        single_deterministic_pass=True).prefetch(3)
                 
-                iterator = iter(dataset)
-
-                num_train_steps = 10
-
-                # trajectories = []
-                for _ in range(num_train_steps):
-                    t, _ = next(iterator)
-                    # trajectories.append(t)
-                    loss_info = tf_agent.train(experience=t)
-                return loss_info
+                print(dataset)
+                for experience in dataset:
+                    print(experience)
+                    print(f'experience[0]: {experience[0]}')
+                    loss = tf_agent.train(experience[0])
+                return loss
 
             # TODO delete this or the other one
             def train_step():
