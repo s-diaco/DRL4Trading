@@ -144,3 +144,8 @@ dmypy.json
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 **/.history
+
+### model logs anddata ###
+trained_models/
+tensorboard_log/
+combined_csv.csv
