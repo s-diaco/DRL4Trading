@@ -373,7 +373,7 @@ class TradeDRLAgent:
     ):
         """An agent for PPO."""
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
-        # TODO optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
         actor_net, value_net = self.create_networks(
             tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
         )
