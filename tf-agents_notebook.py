@@ -33,7 +33,8 @@ import backtest_tse.backtesting_tse as backtest
 from config import config
 from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from env_tse.py_env_trading import TradingPyEnv
-from model.models import TradeDRLAgent
+# from model.models import TradeDRLAgent
+from model.models_v2 import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)

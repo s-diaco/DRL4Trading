@@ -122,12 +122,12 @@ class TradeDRLAgent:
         eval_dir = os.path.join(root_dir, "eval")
         saved_model_dir = os.path.join(root_dir, "policy_saved_model")
 
-        train_summary_writer = tf.compat.v2.summary.create_file_writer(
+        train_summary_writer = tf.summary.create_file_writer(
             train_dir, flush_millis=summaries_flush_secs * 1000
         )
         train_summary_writer.set_as_default()
 
-        eval_summary_writer = tf.compat.v2.summary.create_file_writer(
+        eval_summary_writer = tf.summary.create_file_writer(
             eval_dir, flush_millis=summaries_flush_secs * 1000
         )
         eval_metrics = [
@@ -136,11 +136,11 @@ class TradeDRLAgent:
         ]
 
         global_step = tf.compat.v1.train.get_or_create_global_step()
-        with tf.compat.v2.summary.record_if(
+        with tf.summary.record_if(
             lambda: tf.math.equal(global_step % summary_interval, 0)
         ):
             if random_seed is not None:
-                tf.compat.v1.set_random_seed(random_seed)
+                tf.random.set_seed(random_seed)
 
             
             eval_py_env = py_env()
@@ -169,6 +169,11 @@ class TradeDRLAgent:
                 batch_size=num_parallel_environments,
                 max_length=replay_buffer_capacity,
             )
+
+            # TODO delete
+            # Trajectory
+            # print(tf_agent.collect_data_spec)
+            # print(tf_agent.collect_data_spec._fields)
 
             train_checkpointer = common.Checkpointer(
                 ckpt_dir=train_dir,
@@ -200,21 +205,25 @@ class TradeDRLAgent:
                     loss = tf_agent.train(experience=experiences)
                 return loss
 
-            def train_step_4():
+            def train_step():
                 dataset = replay_buffer.as_dataset(
-                        num_steps=2,
-                        sample_batch_size=1,                         
-                        single_deterministic_pass=True).prefetch(3)
-                
-                print(dataset)
-                for experience in dataset:
-                    print(experience)
-                    print(f'experience[0]: {experience[0]}')
-                    loss = tf_agent.train(experience[0])
-                return loss
+                    num_parallel_calls=num_parallel_environments,
+                    sample_batch_size=num_parallel_environments,
+                    num_steps=2,
+                    single_deterministic_pass=True
+                    ).prefetch(num_parallel_environments)
+                iterator = iter(dataset)
+                # TODO delete - = trajectories._fields
+                # print(iterator.next()[0]._fields)  
+
+                # Sample a batch of data from the buffer and update the agent's network.
+                trajectories, unused_info = next(iterator)
+                train_loss = tf_agent.train(experience=trajectories)
+                # step = agent.train_step_counter.numpy()
+                return train_loss
 
             # TODO delete this or the other one
-            def train_step():
+            def train_step_2():
                 trajectories = replay_buffer.gather_all()
                 return tf_agent.train(experience=trajectories)
 
@@ -268,8 +277,8 @@ class TradeDRLAgent:
                         collect_time,
                         train_time,
                     )
-                    with tf.compat.v2.summary.record_if(True):
-                        tf.compat.v2.summary.scalar(
+                    with tf.summary.record_if(True):
+                        tf.summary.scalar(
                             name="global_steps_per_sec",
                             data=steps_per_sec,
                             step=global_step,
