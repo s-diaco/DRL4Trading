@@ -199,19 +199,30 @@ class TradeDRLAgent:
 
                     
             # TODO delete
-            dataset = replay_buffer.as_dataset(sample_batch_size=1, num_steps=100, single_deterministic_pass=True)
-            def train_step_3():
-                for experiences, _ in dataset:
-                    loss = tf_agent.train(experience=experiences)
+            def train_step_5():
+                dataset = replay_buffer.as_dataset(
+                    # num_parallel_calls=num_parallel_environments,
+                    sample_batch_size=num_parallel_environments,
+                    num_steps=None,
+                    single_deterministic_pass=True
+                    )
+                iterator = iter(dataset)
+  
+                trajectories = []
+                for _ in range(10):
+                    experience, _ = next(iterator)
+                    trajectories.append(experience)
+                loss = tf_agent.train(experience=trajectories)
+                # print(tf.nest.map_structure(lambda t: t.shape, trajectories))
                 return loss
 
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    num_parallel_calls=num_parallel_environments,
-                    sample_batch_size=num_parallel_environments,
-                    num_steps=2,
+                    # num_parallel_calls=num_parallel_environments,
+                    sample_batch_size=None,
+                    num_steps=None,
                     single_deterministic_pass=True
-                    ).prefetch(num_parallel_environments)
+                    )
                 iterator = iter(dataset)
                 # TODO delete - = trajectories._fields
                 # print(iterator.next()[0]._fields)  
@@ -224,6 +235,7 @@ class TradeDRLAgent:
 
             # TODO delete this or the other one
             def train_step_2():
+                #A tensor of shape [B, T, ...] where B = batch size, T = timesteps, and ... is the shape spec of the items in the buffer.
                 trajectories = replay_buffer.gather_all()
                 return tf_agent.train(experience=trajectories)
 
