@@ -214,13 +214,13 @@ class TradeDRLAgent:
                     trajectories.append(experience)
                 loss = tf_agent.train(experience=trajectories)
                 # print(tf.nest.map_structure(lambda t: t.shape, trajectories))
+                # experience should be like tf_agent.training_data_spec
                 return loss
 
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    # num_parallel_calls=num_parallel_environments,
-                    sample_batch_size=None,
-                    num_steps=None,
+                    sample_batch_size=tf_env.batch_size,
+                    num_steps=11,
                     single_deterministic_pass=True
                     )
                 iterator = iter(dataset)
@@ -235,7 +235,7 @@ class TradeDRLAgent:
 
             # TODO delete this or the other one
             def train_step_2():
-                #A tensor of shape [B, T, ...] where B = batch size, T = timesteps, and ... is the shape spec of the items in the buffer.
+                # A tensor of shape [B, T, ...] where B = batch size, T = timesteps, and ... is the shape spec of the items in the buffer.
                 trajectories = replay_buffer.gather_all()
                 return tf_agent.train(experience=trajectories)
 
