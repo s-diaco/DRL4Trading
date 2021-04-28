@@ -220,7 +220,7 @@ class TradeDRLAgent:
             def train_step():
                 dataset = replay_buffer.as_dataset(
                     sample_batch_size=tf_env.batch_size,
-                    num_steps=11,
+                    num_steps=10,
                     single_deterministic_pass=True
                     )
                 iterator = iter(dataset)
