@@ -271,6 +271,8 @@ class TradingPyEnv(py_environment.PyEnvironment):
         # TODO delete
         # if self._current_time_step.step_type == 2:
         #    return self._reset()
+        if self.current_time_step().is_last():
+            return self.reset()
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time

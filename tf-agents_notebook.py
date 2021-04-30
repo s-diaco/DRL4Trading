@@ -34,7 +34,7 @@ from config import config
 from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from env_tse.py_env_trading import TradingPyEnv
 # from model.models import TradeDRLAgent
-from model.models_v2 import TradeDRLAgent
+from model.models_single_process import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -83,7 +83,7 @@ class TestPyEnv(TradingPyEnv):
 
 # %% [markdown]
 ## Train
-tf_agents.system.multiprocessing.enable_interactive_mode()
+# tf_agents.system.multiprocessing.enable_interactive_mode()
 
 # %%
 TradeDRLAgent().train_eval(
@@ -93,7 +93,7 @@ TradeDRLAgent().train_eval(
     use_rnns=False,
     num_environment_steps=70,
     collect_episodes_per_iteration=30,
-    num_parallel_environments=4,
+    num_parallel_environments=1,
     replay_buffer_capacity=1001,
     num_epochs=25,
     num_eval_episodes=30
