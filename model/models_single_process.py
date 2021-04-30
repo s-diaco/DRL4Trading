@@ -114,6 +114,24 @@ class TradeDRLAgent:
         summarize_grads_and_vars=False,
     ):
         """A simple train and eval for PPO."""
+
+        # params from sachag678/Reinforcement_learning/blob/master/tf-agents-example/simulate.py
+        num_iterations = 10000  # @param
+
+        initial_collect_steps = 1000  # @param
+        collect_steps_per_iteration = 1  # @param
+        replay_buffer_capacity = 100000  # @param
+
+        fc_layer_params = (100,)
+
+        batch_size = 128  # @param
+        learning_rate = 1e-5  # @param
+        log_interval = 200  # @param
+
+        num_eval_episodes = 2  # @param
+        eval_interval = 1000  # @param
+        # end of params from sachag678...
+
         if root_dir is None:
             raise AttributeError("train_eval requires a root_dir.")
 
@@ -162,8 +180,8 @@ class TradeDRLAgent:
             ]
 
             train_metrics = step_metrics + [
-                tf_metrics.AverageReturnMetric(batch_size=num_parallel_environments),
-                tf_metrics.AverageEpisodeLengthMetric(batch_size=num_parallel_environments),
+                tf_metrics.AverageReturnMetric(),
+                tf_metrics.AverageEpisodeLengthMetric(),
             ]
 
             eval_policy = tf_agent.policy
@@ -171,9 +189,10 @@ class TradeDRLAgent:
 
             replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
                 tf_agent.collect_data_spec,
-                batch_size=num_parallel_environments,
+                batch_size=train_env.batch_size,
                 max_length=replay_buffer_capacity,
             )
+            replay_observer = [replay_buffer.add_batch]
 
             # TODO delete
             # Trajectory
@@ -195,51 +214,30 @@ class TradeDRLAgent:
 
             train_checkpointer.initialize_or_restore()
 
-            collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
+            # TODO delete
+            collect_driver_v2 = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
                 observers=[replay_buffer.add_batch] + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
 
-                    
+            collect_driver = dynamic_step_driver.DynamicStepDriver(
+                train_env,
+                collect_policy,
+                observers=replay_observer + train_metrics,
+                num_steps=1)
+    
             # TODO delete
-            def train_step_5():
-                dataset = replay_buffer.as_dataset(
-                    # num_parallel_calls=num_parallel_environments,
-                    sample_batch_size=num_parallel_environments,
-                    num_steps=None,
-                    single_deterministic_pass=True
-                    )
-                iterator = iter(dataset)
-  
-                trajectories = []
-                for _ in range(10):
-                    experience, _ = next(iterator)
-                    trajectories.append(experience)
-                loss = tf_agent.train(experience=trajectories)
-                # print(tf.nest.map_structure(lambda t: t.shape, trajectories))
-                # experience should be like tf_agent.training_data_spec
-                return loss
-
-            def train_step():
-                dataset = replay_buffer.as_dataset(
-                    sample_batch_size=train_env.batch_size,
-                    num_steps=10,
-                    single_deterministic_pass=True
-                    )
-                iterator = iter(dataset)
-                # TODO delete - = trajectories._fields
-                # print(iterator.next()[0]._fields)  
-
-                # Sample a batch of data from the buffer and update the agent's network.
-                trajectories, unused_info = next(iterator)
-                train_loss = tf_agent.train(experience=trajectories)
-                # step = agent.train_step_counter.numpy()
-                return train_loss
+            # def train_step():
+            dataset = replay_buffer.as_dataset(
+                num_parallel_calls=3,
+                sample_batch_size=batch_size,
+                num_steps=2).prefetch(3)
+            iterator = iter(dataset)
 
             # TODO delete this or the other one
-            def train_step_2():
+            def train_step():
                 # A tensor of shape [B, T, ...] where B = batch size, T = timesteps, and ... is the shape spec of the items in the buffer.
                 trajectories = replay_buffer.gather_all()
                 return tf_agent.train(experience=trajectories)
@@ -252,9 +250,18 @@ class TradeDRLAgent:
                 tf_agent.train = common.function(tf_agent.train, autograph=False)
                 train_step = common.function(train_step)
 
+            tf_agent.train_step_counter.assign(0)
             collect_time = 0
             train_time = 0
             timed_at_step = global_step.numpy()
+
+            final_time_step, policy_state = collect_driver.run()
+
+            for i in range(1000):
+                final_time_step, _ = collect_driver.run(final_time_step, policy_state)
+            
+            episode_len = []
+            step_len = []
 
             while environment_steps_metric.result() < num_environment_steps:
                 global_step_val = global_step.numpy()
@@ -270,11 +277,14 @@ class TradeDRLAgent:
                     )
 
                 start_time = time.time()
-                collect_driver.run()
+                final_time_step, _ = collect_driver.run(final_time_step, policy_state)
                 collect_time += time.time() - start_time
 
                 start_time = time.time()
-                total_loss, _ = train_step()
+                trajectories, _ = next(iterator)
+                train_loss = tf_agent.train(experience=trajectories)
+                step = tf_agent.train_step_counter.numpy()
+                # total_loss, _ = train_step()
                 replay_buffer.clear()
                 train_time += time.time() - start_time
 
@@ -403,6 +413,7 @@ class TradeDRLAgent:
         actor_net, value_net = self.create_networks(
             tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
         )
+        train_step_counter = tf.Variable(0)
         tf_agent = ppo_agent.PPOAgent(
 			tf_env.time_step_spec(),
 			tf_env.action_spec(),
@@ -414,7 +425,8 @@ class TradeDRLAgent:
 			entropy_regularization=1e-2,
 			importance_ratio_clipping=0.2,
 			use_gae=True,
-			use_td_lambda_return=True
+			use_td_lambda_return=True,
+            train_step_counter=train_step_counter
 		)
         tf_agent.initialize()
         return tf_agent
