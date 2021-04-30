@@ -185,7 +185,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         state = self.state_memory[-1]
         self.log_step(reason=reason, terminal_reward=reward)
         
-        return time_step.truncation(observation=state, reward=reward)
+        return time_step.termination(observation=state, reward=reward)
 
     def log_step(self, reason, terminal_reward=None):
         if terminal_reward is None:
@@ -268,6 +268,9 @@ class TradingPyEnv(py_environment.PyEnvironment):
             return reward
 
     def _step(self, actions):
+        # TODO delete
+        # if self._current_time_step.step_type == 2:
+        #    return self._reset()
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time
@@ -412,7 +415,11 @@ class TradingPyEnv(py_environment.PyEnvironment):
             self.avg_buy_price = np.where(
                 buys > 0,
                 self.avg_buy_price +
-                ((closings - self.avg_buy_price) / self.n_buys),
+                np.divide(closings - self.avg_buy_price,
+                            self.n_buys,
+                            out=np.zeros_like(self.n_buys),
+                            where=self.n_buys!=0
+                            ),
                 self.avg_buy_price,
             )  # incremental average
 
