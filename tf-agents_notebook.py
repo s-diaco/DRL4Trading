@@ -14,6 +14,7 @@
 # - replace print with logging is py_env
 # - what is random_seed in 2 files
 # - change num_parallel_environments
+# - separate get_agent() from model train
 # %% [markdown]
 ## import modules
 import datetime

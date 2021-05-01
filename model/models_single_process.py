@@ -122,8 +122,6 @@ class TradeDRLAgent:
         collect_steps_per_iteration = 1  # @param
         replay_buffer_capacity = 100000  # @param
 
-        fc_layer_params = (100,)
-
         batch_size = 128  # @param
         learning_rate = 1e-5  # @param
         log_interval = 200  # @param
@@ -189,7 +187,7 @@ class TradeDRLAgent:
 
             replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
                 tf_agent.collect_data_spec,
-                batch_size=train_env.batch_size,
+                batch_size=train_env.batch_size, # TODO is it the same batch size as stable baselines implementation?
                 max_length=replay_buffer_capacity,
             )
             replay_observer = [replay_buffer.add_batch]
@@ -214,11 +212,11 @@ class TradeDRLAgent:
 
             train_checkpointer.initialize_or_restore()
 
-            # TODO delete
+            # TODO which one is better?
             collect_driver_v2 = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
-                observers=[replay_buffer.add_batch] + train_metrics,
+                observers=replay_observer + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
 
@@ -227,20 +225,12 @@ class TradeDRLAgent:
                 collect_policy,
                 observers=replay_observer + train_metrics,
                 num_steps=1)
-    
-            # TODO delete
-            # def train_step():
+
             dataset = replay_buffer.as_dataset(
                 num_parallel_calls=3,
                 sample_batch_size=batch_size,
                 num_steps=2).prefetch(3)
             iterator = iter(dataset)
-
-            # TODO delete this or the other one
-            def train_step():
-                # A tensor of shape [B, T, ...] where B = batch size, T = timesteps, and ... is the shape spec of the items in the buffer.
-                trajectories = replay_buffer.gather_all()
-                return tf_agent.train(experience=trajectories)
 
             if use_tf_functions:
                 # TODO(b/123828980): Enable once the cause for slowdown was identified.
@@ -248,7 +238,7 @@ class TradeDRLAgent:
                     collect_driver.run, autograph=False
                 )
                 tf_agent.train = common.function(tf_agent.train, autograph=False)
-                train_step = common.function(train_step)
+                # TODO train_step = common.function(train_step)
 
             tf_agent.train_step_counter.assign(0)
             collect_time = 0
@@ -257,11 +247,8 @@ class TradeDRLAgent:
 
             final_time_step, policy_state = collect_driver.run()
 
-            for i in range(1000):
+            for _ in range(1000):
                 final_time_step, _ = collect_driver.run(final_time_step, policy_state)
-            
-            episode_len = []
-            step_len = []
 
             while environment_steps_metric.result() < num_environment_steps:
                 global_step_val = global_step.numpy()
@@ -407,7 +394,14 @@ class TradeDRLAgent:
         debug_summaries=False,
         summarize_grads_and_vars=False,
     ):
-        """An agent for PPO."""
+        # TODO check this parameters from the stable baselines implementation.
+        """An agent for PPO.
+        {'n_steps': 256, 'ent_coef': 0.0, 'learning_rate': 5e-06, 'batch_size': 1024, 'gamma': 0.99}
+        UserWarning: You have specified a mini-batch size of 1024, but because the `RolloutBuffer` is of size `n_steps * n_envs = 256`, after every 0 untruncated mini-batches, there will be a truncated mini-batch of size 256
+        We recommend using a `batch_size` that is a multiple of `n_steps * n_envs`.
+        Info: (n_steps=256 and n_envs=1)
+        """
+
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
         actor_net, value_net = self.create_networks(
