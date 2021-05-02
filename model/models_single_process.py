@@ -94,7 +94,7 @@ class TradeDRLAgent:
         lstm_size=(20,),
         # Params for collect
         num_environment_steps=25000000,
-        collect_episodes_per_iteration=1,
+        collect_episodes_per_iteration=100,
         num_parallel_environments=5,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for train
@@ -213,14 +213,14 @@ class TradeDRLAgent:
             train_checkpointer.initialize_or_restore()
 
             # TODO which one is better?
-            collect_driver_v2 = dynamic_episode_driver.DynamicEpisodeDriver(
+            collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
                 observers=replay_observer + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
 
-            collect_driver = dynamic_step_driver.DynamicStepDriver(
+            collect_driver_v2 = dynamic_step_driver.DynamicStepDriver(
                 train_env,
                 collect_policy,
                 observers=replay_observer + train_metrics,
@@ -241,10 +241,10 @@ class TradeDRLAgent:
                 train_loss = tf_agent.train(experience=trajectories)
                 return train_loss
 
-            def save_policy(saved_model, saved_model_dir, global_step_val):
+            def save_policy(saved_model, saved_model_dir, step_metrics):
                 saved_model_path = os.path.join(
                     saved_model_dir,
-                    "policy_" + ("%d" % global_step_val).zfill(9),
+                    "policy_" + ("%d" % step_metrics[1].environment_steps.numpy()).zfill(9),
                 )
                 saved_model.save(saved_model_path)
 
@@ -316,19 +316,15 @@ class TradeDRLAgent:
                             step=global_step,
                         )
 
-                    if global_step_val % train_checkpoint_interval == 0:
-                        train_checkpointer.save(global_step=global_step_val)
+                if global_step_val % train_checkpoint_interval == 0:
+                    train_checkpointer.save(global_step=global_step_val)
 
-                    if global_step_val % policy_checkpoint_interval == 0:
-                        policy_checkpointer.save(global_step=global_step_val)
-                        save_policy(saved_model=saved_model,
-                                    saved_model_dir=saved_model_dir,
-                                    global_step_val=global_step_val
-                                    )
-
-                    timed_at_step = global_step_val
-                    collect_time = 0
-                    train_time = 0
+                if global_step_val % policy_checkpoint_interval == 0:
+                    policy_checkpointer.save(global_step=global_step_val)
+                    save_policy(saved_model=saved_model,
+                                saved_model_dir=saved_model_dir,
+                                step_metrics=step_metrics
+                                )
 
             # One final eval before exiting.
             metric_utils.eager_compute(
@@ -344,7 +340,7 @@ class TradeDRLAgent:
             # save the final policy
             save_policy(saved_model=saved_model,
                         saved_model_dir=saved_model_dir,
-                        global_step_val=global_step_val
+                        step_metrics=step_metrics
                         )
 
     @staticmethod
@@ -354,6 +350,7 @@ class TradeDRLAgent:
         pred_py_env = py_test_env()
         pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
         # load policy
+        # TODO load the best policy file
         policy_path = os.path.join("trained_models/policy_saved_model/policy_000000000")
         policy = tf.saved_model.load(policy_path)
         # account_memory = []

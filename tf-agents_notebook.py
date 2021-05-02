@@ -93,7 +93,7 @@ TradeDRLAgent().train_eval(
     # tf_agent=tf_agent,
     use_rnns=False,
     num_environment_steps=70,
-    collect_episodes_per_iteration=1,
+    collect_episodes_per_iteration=2,
     num_parallel_environments=1,
     replay_buffer_capacity=1001,
     num_epochs=25,
