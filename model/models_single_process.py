@@ -94,7 +94,7 @@ class TradeDRLAgent:
         lstm_size=(20,),
         # Params for collect
         num_environment_steps=25000000,
-        collect_episodes_per_iteration=30,
+        collect_episodes_per_iteration=1,
         num_parallel_environments=5,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for train
@@ -105,7 +105,7 @@ class TradeDRLAgent:
         eval_interval=500,
         # Params for summaries and logging
         train_checkpoint_interval=500,
-        policy_checkpoint_interval=500,
+        policy_checkpoint_interval=5,
         log_interval=50,
         summary_interval=50,
         summaries_flush_secs=1,
@@ -116,7 +116,7 @@ class TradeDRLAgent:
         """A simple train and eval for PPO."""
 
         # params from sachag678/Reinforcement_learning/blob/master/tf-agents-example/simulate.py
-        num_iterations = 10000  # @param
+        num_iterations = 20  # @param
 
         initial_collect_steps = 1000  # @param
         collect_steps_per_iteration = 1  # @param
@@ -224,13 +224,29 @@ class TradeDRLAgent:
                 train_env,
                 collect_policy,
                 observers=replay_observer + train_metrics,
-                num_steps=1)
+                num_steps=20)
 
-            dataset = replay_buffer.as_dataset(
-                num_parallel_calls=3,
-                sample_batch_size=batch_size,
-                num_steps=2).prefetch(3)
-            iterator = iter(dataset)
+            def train_step():
+                trajectories = replay_buffer.gather_all()
+                train_loss = tf_agent.train(experience=trajectories)
+                return train_loss
+            # TODO delete onee of these
+            def train_step_v2():
+                dataset = replay_buffer.as_dataset(
+                    num_parallel_calls=3,
+                    sample_batch_size=batch_size,
+                    num_steps=2).prefetch(3)
+                iterator = iter(dataset)
+                trajectories, _ = next(iterator)
+                train_loss = tf_agent.train(experience=trajectories)
+                return train_loss
+
+            def save_policy(saved_model, saved_model_dir, global_step_val):
+                saved_model_path = os.path.join(
+                    saved_model_dir,
+                    "policy_" + ("%d" % global_step_val).zfill(9),
+                )
+                saved_model.save(saved_model_path)
 
             if use_tf_functions:
                 # TODO(b/123828980): Enable once the cause for slowdown was identified.
@@ -238,19 +254,16 @@ class TradeDRLAgent:
                     collect_driver.run, autograph=False
                 )
                 tf_agent.train = common.function(tf_agent.train, autograph=False)
-                # TODO train_step = common.function(train_step)
+                train_step = common.function(train_step)
 
             tf_agent.train_step_counter.assign(0)
             collect_time = 0
             train_time = 0
             timed_at_step = global_step.numpy()
 
-            final_time_step, policy_state = collect_driver.run()
-
-            for _ in range(1000):
-                final_time_step, _ = collect_driver.run(final_time_step, policy_state)
-
-            while environment_steps_metric.result() < num_environment_steps:
+            # TODO what is this step metrics for? 
+            # while environment_steps_metric.result() < num_environment_steps:
+            for _ in range(num_iterations):
                 global_step_val = global_step.numpy()
                 if global_step_val % eval_interval == 0:
                     metric_utils.eager_compute(
@@ -263,17 +276,22 @@ class TradeDRLAgent:
                         summary_prefix="Metrics",
                     )
 
+                logging.info(f'start collecting data to replay buffer')
                 start_time = time.time()
-                final_time_step, _ = collect_driver.run(final_time_step, policy_state)
+                final_time_step, _ = collect_driver.run()
                 collect_time += time.time() - start_time
+                logging.info(f'collect ended')
+                logging.info(f'collect time: {collect_time}')
 
+                logging.info(f'start training')
                 start_time = time.time()
-                trajectories, _ = next(iterator)
-                train_loss = tf_agent.train(experience=trajectories)
+                total_loss = train_step()
                 step = tf_agent.train_step_counter.numpy()
                 # total_loss, _ = train_step()
                 replay_buffer.clear()
                 train_time += time.time() - start_time
+                logging.info(f'train ended')
+                logging.info(f'train time: {collect_time}')
 
                 for train_metric in train_metrics:
                     train_metric.tf_summaries(
@@ -303,11 +321,10 @@ class TradeDRLAgent:
 
                     if global_step_val % policy_checkpoint_interval == 0:
                         policy_checkpointer.save(global_step=global_step_val)
-                        saved_model_path = os.path.join(
-                            saved_model_dir,
-                            "policy_" + ("%d" % global_step_val).zfill(9),
-                        )
-                        saved_model.save(saved_model_path)
+                        save_policy(saved_model=saved_model,
+                                    saved_model_dir=saved_model_dir,
+                                    global_step_val=global_step_val
+                                    )
 
                     timed_at_step = global_step_val
                     collect_time = 0
@@ -323,6 +340,12 @@ class TradeDRLAgent:
                 summary_writer=eval_summary_writer,
                 summary_prefix="Metrics",
             )
+
+            # save the final policy
+            save_policy(saved_model=saved_model,
+                        saved_model_dir=saved_model_dir,
+                        global_step_val=global_step_val
+                        )
 
     @staticmethod
     def predict_trades(py_test_env):
@@ -407,7 +430,10 @@ class TradeDRLAgent:
         actor_net, value_net = self.create_networks(
             tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
         )
-        train_step_counter = tf.Variable(0)
+
+        # dtype arg. is not used in any tutorial but my code doesn't work without this
+        train_step_counter = tf.Variable(0, dtype='int64')
+
         tf_agent = ppo_agent.PPOAgent(
 			tf_env.time_step_spec(),
 			tf_env.action_spec(),
