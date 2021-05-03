@@ -35,7 +35,7 @@ from config import config
 from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from env_tse.py_env_trading import TradingPyEnv
 # from model.models import TradeDRLAgent
-from model.models_single_process import TradeDRLAgent
+from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
