@@ -151,7 +151,7 @@ class TradeDRLAgent:
             tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
             tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
         ]
-
+        # TODO replace with tf_agent.train_step_counter.numpy()
         global_step = tf.compat.v1.train.get_or_create_global_step()
         with tf.summary.record_if(
             lambda: tf.math.equal(global_step % summary_interval, 0)
@@ -186,23 +186,16 @@ class TradeDRLAgent:
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
 
-            # TODO delete
-            replay_buffer_v2 = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-                tf_agent.collect_data_spec,
-                batch_size=train_env.batch_size, # TODO is it the same batch size as stable baselines implementation?
-                max_length=replay_buffer_capacity,
-            )
-
-            epi_replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
+            replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
                 tf_agent.collect_data_spec,
                 capacity = replay_buffer_capacity,
                 completed_only = True
             )
 
-            replay_buffer = episodic_replay_buffer.StatefulEpisodicReplayBuffer(
-                epi_replay_buffer, train_env.batch_size)
+            stateful_buffer = episodic_replay_buffer.StatefulEpisodicReplayBuffer(
+                replay_buffer, train_env.batch_size)
 
-            replay_observer = [replay_buffer.add_batch]
+            replay_observer = [stateful_buffer.add_batch]
 
             # TODO delete
             # Trajectory
@@ -232,22 +225,11 @@ class TradeDRLAgent:
                 num_episodes=collect_episodes_per_iteration,
             )
 
-            collect_driver_v2 = dynamic_step_driver.DynamicStepDriver(
-                train_env,
-                collect_policy,
-                observers=replay_observer + train_metrics,
-                num_steps=20)
-
-            def train_step_v2():
-                trajectories = replay_buffer.gather_all()
-                train_loss = tf_agent.train(experience=trajectories)
-                return train_loss
-            # TODO delete onee of these
             def train_step():
                 dataset = replay_buffer.as_dataset(
                     num_parallel_calls=3,
-                    sample_batch_size=batch_size,
-                    num_steps=2).prefetch(3)
+                    sample_batch_size=1024,
+                    num_steps=1024)
                 iterator = iter(dataset)
                 trajectories, _ = next(iterator)
                 train_loss = tf_agent.train(experience=trajectories)
@@ -301,7 +283,7 @@ class TradeDRLAgent:
                 step = tf_agent.train_step_counter.numpy()
                 # total_loss, _ = train_step()
                 # replay_buffer.clear()
-                epi_replay_buffer.clear()
+                replay_buffer.clear()
                 train_time += time.time() - start_time
                 logging.info(f'train ended')
                 logging.info(f'train time: {collect_time}')
