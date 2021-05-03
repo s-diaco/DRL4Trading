@@ -224,12 +224,12 @@ class TradeDRLAgent:
                 observers=replay_observer + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
-
+            
             def train_step():
                 dataset = replay_buffer.as_dataset(
                     num_parallel_calls=3,
-                    sample_batch_size=1024,
-                    num_steps=1024)
+                    sample_batch_size=batch_size,
+                    num_steps=2).prefetch(3)
                 iterator = iter(dataset)
                 trajectories, _ = next(iterator)
                 train_loss = tf_agent.train(experience=trajectories)
