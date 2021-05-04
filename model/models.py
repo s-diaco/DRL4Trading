@@ -216,8 +216,7 @@ class TradeDRLAgent:
             saved_model = policy_saver.PolicySaver(eval_policy, train_step=global_step)
 
             train_checkpointer.initialize_or_restore()
-
-            # TODO which one is better?
+            
             collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
@@ -227,8 +226,17 @@ class TradeDRLAgent:
             
             def train_step():
                 dataset = replay_buffer.as_dataset(
+                    single_deterministic_pass=True
+                )
+                iterator = iter(dataset)
+                trajectories, _ = next(iterator)
+                train_loss = tf_agent.train(experience=trajectories)
+                return train_loss
+            
+            def train_step_2():
+                dataset = replay_buffer.as_dataset(
                     num_parallel_calls=3,
-                    sample_batch_size=batch_size,
+                    sample_batch_size=train_env.batch_size,
                     num_steps=2).prefetch(3)
                 iterator = iter(dataset)
                 trajectories, _ = next(iterator)
