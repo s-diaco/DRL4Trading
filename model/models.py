@@ -229,7 +229,7 @@ class TradeDRLAgent:
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
-                trajectories, _ = next(iterator)
+                trajectories = next(iterator)
                 train_loss = tf_agent.train(experience=trajectories)
                 return train_loss
             
