@@ -117,7 +117,7 @@ class TradeDRLAgent:
         """A simple train and eval for PPO."""
 
         # params from sachag678/Reinforcement_learning/blob/master/tf-agents-example/simulate.py
-        num_iterations = 20  # @param
+        num_iterations = 1  # @param
 
         initial_collect_steps = 1000  # @param
         collect_steps_per_iteration = 1  # @param
@@ -162,13 +162,13 @@ class TradeDRLAgent:
             
             # eval_py_env = py_env()
             # eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-            # tf_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-            #    [py_env] * num_parallel_environments))
+            train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
+                [py_env] * num_parallel_environments))
                
+            # train_py_env = py_env()
+            # train_env=tf_py_environment.TFPyEnvironment(train_py_env)
             eval_py_env = py_env()
-            train_py_env = py_env()
             eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-            train_env=tf_py_environment.TFPyEnvironment(train_py_env)
 
             tf_agent=self.get_agent(train_env)
 
@@ -227,7 +227,7 @@ class TradeDRLAgent:
             def train_step():
                 dataset = replay_buffer.as_dataset(
                     single_deterministic_pass=True
-                )
+                ).batch(300)
                 iterator = iter(dataset)
                 trajectories = next(iterator)
                 train_loss = tf_agent.train(experience=trajectories)
