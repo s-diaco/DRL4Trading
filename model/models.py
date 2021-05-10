@@ -113,11 +113,11 @@ class TradeDRLAgent:
         use_tf_functions=True,
         debug_summaries=False,
         summarize_grads_and_vars=False,
+        num_iterations = 10
     ):
         """A simple train and eval for PPO."""
 
         # params from sachag678/Reinforcement_learning/blob/master/tf-agents-example/simulate.py
-        num_iterations = 1  # @param
 
         initial_collect_steps = 1000  # @param
         collect_steps_per_iteration = 1  # @param
@@ -223,23 +223,15 @@ class TradeDRLAgent:
                 observers=replay_observer + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
-            
+        
             def train_step():
                 dataset = replay_buffer.as_dataset(
+                    sample_batch_size=300,
+                    num_steps=2,
                     single_deterministic_pass=True
-                ).batch(300)
+                )
                 iterator = iter(dataset)
                 trajectories = next(iterator)
-                train_loss = tf_agent.train(experience=trajectories)
-                return train_loss
-            
-            def train_step_2():
-                dataset = replay_buffer.as_dataset(
-                    num_parallel_calls=3,
-                    sample_batch_size=train_env.batch_size,
-                    num_steps=2).prefetch(3)
-                iterator = iter(dataset)
-                trajectories, _ = next(iterator)
                 train_loss = tf_agent.train(experience=trajectories)
                 return train_loss
 
@@ -289,9 +281,7 @@ class TradeDRLAgent:
                 start_time = time.time()
                 total_loss = train_step()
                 step = tf_agent.train_step_counter.numpy()
-                # total_loss, _ = train_step()
-                # replay_buffer.clear()
-                replay_buffer.clear()
+                clear_replay_op = replay_buffer.clear()
                 train_time += time.time() - start_time
                 logging.info(f'train ended')
                 logging.info(f'train time: {collect_time}')
