@@ -55,6 +55,7 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.replay_buffers import episodic_replay_buffer
 from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.utils import common
+from halo import Halo
 
 
 class TradeDRLAgent:
@@ -197,11 +198,6 @@ class TradeDRLAgent:
 
             replay_observer = [stateful_buffer.add_batch]
 
-            # TODO delete
-            # Trajectory
-            # print(tf_agent.collect_data_spec)
-            # print(tf_agent.collect_data_spec._fields)
-
             train_checkpointer = common.Checkpointer(
                 ckpt_dir=train_dir,
                 agent=tf_agent,
@@ -232,6 +228,7 @@ class TradeDRLAgent:
                 )
                 iterator = iter(dataset)
                 trajectories = next(iterator)
+                # batched_ds = tf.expand_dims(dataset, axis=1)
                 train_loss = tf_agent.train(experience=trajectories)
                 return train_loss
 
@@ -277,12 +274,16 @@ class TradeDRLAgent:
                 logging.info(f'collect ended')
                 logging.info(f'collect time: {collect_time}')
 
+
+
                 logging.info(f'start training')
-                start_time = time.time()
-                total_loss = train_step()
-                step = tf_agent.train_step_counter.numpy()
-                clear_replay_op = replay_buffer.clear()
-                train_time += time.time() - start_time
+                with Halo(text='Training the model', spinner='dots'):
+                    # Run time consuming work here
+                    start_time = time.time()
+                    total_loss = train_step()
+                    step = tf_agent.train_step_counter.numpy()
+                    clear_replay_op = replay_buffer.clear()
+                    train_time += time.time() - start_time
                 logging.info(f'train ended')
                 logging.info(f'train time: {collect_time}')
 
