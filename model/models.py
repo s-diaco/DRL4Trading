@@ -222,14 +222,15 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    sample_batch_size=300,
+                    # sample_batch_size=300,
                     num_steps=2,
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
                 trajectories = next(iterator)
                 # batched_ds = tf.expand_dims(dataset, axis=1)
-                train_loss = tf_agent.train(experience=trajectories)
+                batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, 0), trajectories)
+                train_loss = tf_agent.train(experience=batched_traj)
                 return train_loss
 
             def save_policy(saved_model, saved_model_dir, step_metrics):
