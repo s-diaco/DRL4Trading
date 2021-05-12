@@ -348,7 +348,7 @@ class TradeDRLAgent:
         use_rnns=False,
         lstm_size=(20,),
         # Params for train
-        num_epochs=25,
+        num_epochs=5,
         learning_rate=1e-3,
     ):
         # TODO check this parameters from the stable baselines implementation.
