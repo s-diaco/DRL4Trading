@@ -79,9 +79,9 @@ class TestPyEnv(TradingPyEnv):
 
 # %% [markdown]
 ## Agent
-# todo: delete - tf_agent = TradeDRLAgent().get_agent(
-#        train_eval_py_env=TrainEvalPyEnv,
-#        )
+tf_agent = TradeDRLAgent().get_agent(
+    py_env=TrainEvalPyEnv,
+)
 
 # %% [markdown]
 ## Train
@@ -91,15 +91,9 @@ tf_agents.system.multiprocessing.enable_interactive_mode()
 TradeDRLAgent().train_eval(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
-    # tf_agent=tf_agent,
-    use_rnns=False,
-    num_environment_steps=70,
+    tf_agent=tf_agent,
     collect_episodes_per_iteration=3,
-    num_parallel_environments=1,
-    replay_buffer_capacity=1001,
-    num_epochs=25,
-    num_eval_episodes=30,
-    num_iterations = 4
+    num_iterations = 2
     )
 
 # %% [markdown]

@@ -1,48 +1,15 @@
 # coding=utf-8
-# Copyright 2020 The TF-Agents Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-r"""Train and Eval PPO.
-To run:
-```bash
-tensorboard --logdir $HOME/tmp/ppo/gym/HalfCheetah-v2/ --port 2223 &
-python tf_agents/agents/ppo/examples/v2/train_eval_clip_agent.py \
-  --root_dir=$HOME/tmp/ppo/gym/HalfCheetah-v2/ \
-  --logtostderr
-```
-"""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import functools
 import os
 import time
 
-from absl import app
-from absl import flags
-from absl import logging
+import logging
 
 import gin
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 from tf_agents.agents.ppo import ppo_agent
-from tf_agents.drivers import dynamic_episode_driver
-from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import parallel_py_environment
-from tf_agents.environments import suite_mujoco
 from tf_agents.environments import tf_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
@@ -51,9 +18,11 @@ from tf_agents.networks import actor_distribution_rnn_network
 from tf_agents.networks import value_network
 from tf_agents.networks import value_rnn_network
 from tf_agents.policies import policy_saver
-from tf_agents.replay_buffers import tf_uniform_replay_buffer
+from tf_agents.drivers import dynamic_episode_driver
+# from tf_agents.drivers import dynamic_step_driver
+# from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.replay_buffers import episodic_replay_buffer
-from tf_agents.system import system_multiprocessing as multiprocessing
+# from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.utils import common
 from halo import Halo
 
@@ -63,7 +32,7 @@ class TradeDRLAgent:
 
     Attributes
     ----------
-        env: gym environment class
+        env: environment class
             user-defined class
 
     Methods
@@ -87,50 +56,26 @@ class TradeDRLAgent:
         self,
         root_dir,
         py_env,
-        # tf_agent,
+        tf_agent,
         random_seed=None,
-        # TODO(b/127576522): rename to policy_fc_layers.
-        actor_fc_layers=(200, 100),
-        value_fc_layers=(200, 100),
-        use_rnns=False,
-        lstm_size=(20,),
         # Params for collect
-        num_environment_steps=25000000,
+        # num_environment_steps=25000000,
         collect_episodes_per_iteration=100,
-        num_parallel_environments=5,
+        num_parallel_environments=1,
         replay_buffer_capacity=1001,  # Per-environment
-        # Params for train
-        num_epochs=25,
-        learning_rate=1e-3,
         # Params for eval
-        num_eval_episodes=30,
+        num_eval_episodes=3,
         eval_interval=500,
         # Params for summaries and logging
         train_checkpoint_interval=500,
         policy_checkpoint_interval=5,
-        log_interval=50,
+        log_interval=1000,
         summary_interval=50,
         summaries_flush_secs=1,
         use_tf_functions=True,
-        debug_summaries=False,
-        summarize_grads_and_vars=False,
         num_iterations = 10
     ):
-        """A simple train and eval for PPO."""
-
-        # params from sachag678/Reinforcement_learning/blob/master/tf-agents-example/simulate.py
-
-        initial_collect_steps = 1000  # @param
-        collect_steps_per_iteration = 1  # @param
-        replay_buffer_capacity = 100000  # @param
-
-        batch_size = 128  # @param
-        learning_rate = 1e-5  # @param
-        log_interval = 200  # @param
-
-        num_eval_episodes = 2  # @param
-        eval_interval = 1000  # @param
-        # end of params from sachag678...
+        """A train and eval for PPO."""
 
         if root_dir is None:
             raise AttributeError("train_eval requires a root_dir.")
@@ -160,18 +105,12 @@ class TradeDRLAgent:
             if random_seed is not None:
                 tf.random.set_seed(random_seed)
 
-            
-            # eval_py_env = py_env()
-            # eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
             train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
                 [py_env] * num_parallel_environments))
-               
             # train_py_env = py_env()
             # train_env=tf_py_environment.TFPyEnvironment(train_py_env)
             eval_py_env = py_env()
             eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-
-            tf_agent=self.get_agent(train_env)
 
             environment_steps_metric = tf_metrics.EnvironmentSteps()
             step_metrics = [
@@ -222,22 +161,28 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    # sample_batch_size=300,
+                    # sample_batch_size=30,
                     num_steps=2,
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
-                trajectories = next(iterator)
-                # batched_ds = tf.expand_dims(dataset, axis=1)
-                batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, 0), trajectories)
-                train_loss = tf_agent.train(experience=batched_traj)
+                for _ in range(collect_episodes_per_iteration):
+                    trajectories = next(iterator)
+                    batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
+                    train_loss = tf_agent.train(experience=batched_traj)
                 return train_loss
 
-            def save_policy(saved_model, saved_model_dir, step_metrics):
-                saved_model_path = os.path.join(
-                    saved_model_dir,
-                    "policy_" + ("%d" % step_metrics[1].environment_steps.numpy()).zfill(9),
-                )
+            def save_policy(saved_model, saved_model_dir, step_metrics, is_complete=False):
+                if is_complete:
+                    saved_model_path = os.path.join(
+                        saved_model_dir,
+                        "complete_policy",
+                    )
+                else:
+                    saved_model_path = os.path.join(
+                        saved_model_dir,
+                        "policy_" + ("%d" % step_metrics[1].environment_steps.numpy()).zfill(9),
+                    )
                 saved_model.save(saved_model_path)
 
             if use_tf_functions:
@@ -274,8 +219,6 @@ class TradeDRLAgent:
                 collect_time += time.time() - start_time
                 logging.info(f'collect ended')
                 logging.info(f'collect time: {collect_time}')
-
-
 
                 logging.info(f'start training')
                 with Halo(text='Training the model', spinner='dots'):
@@ -335,22 +278,24 @@ class TradeDRLAgent:
             # save the final policy
             save_policy(saved_model=saved_model,
                         saved_model_dir=saved_model_dir,
-                        step_metrics=step_metrics
+                        step_metrics=step_metrics,
+                        is_complete=True
                         )
 
     @staticmethod
     def predict_trades(py_test_env):
         """make a prediction"""
+
         # load envoirement
         pred_py_env = py_test_env()
         pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
+
         # load policy
-        # TODO load the best policy file
-        policy_path = os.path.join("trained_models/policy_saved_model/policy_000000000")
+        policy_path = os.path.join("trained_models/policy_saved_model/complete_policy")
         policy = tf.saved_model.load(policy_path)
         # account_memory = []
         # actions_memory = []
-        transitions = []
+        # transitions = []
         time_step = pred_tf_env.reset()
         while not time_step.is_last():
             policy_step = policy.action(time_step)
@@ -396,7 +341,7 @@ class TradeDRLAgent:
 
     def get_agent(
         self,
-        tf_env,
+        py_env,
         # TODO(b/127576522): rename to policy_fc_layers.
         actor_fc_layers=(200, 100),
         value_fc_layers=(200, 100),
@@ -405,9 +350,6 @@ class TradeDRLAgent:
         # Params for train
         num_epochs=25,
         learning_rate=1e-3,
-        # Params for summaries and logging
-        debug_summaries=False,
-        summarize_grads_and_vars=False,
     ):
         # TODO check this parameters from the stable baselines implementation.
         """An agent for PPO.
@@ -418,6 +360,8 @@ class TradeDRLAgent:
         """
 
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+
+        tf_env = tf_py_environment.TFPyEnvironment(py_env)
 
         actor_net, value_net = self.create_networks(
             tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
