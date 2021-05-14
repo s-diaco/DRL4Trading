@@ -91,7 +91,7 @@ class TradeDRLAgent:
         # num_parallel_environments=1,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for eval
-        num_eval_episodes=3,
+        num_eval_episodes=2,
         eval_interval=500,
         # Params for summaries and logging
         train_checkpoint_interval=500,
@@ -187,7 +187,7 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    num_steps=2, # should be 256
+                    num_steps=256, # should be 256
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
@@ -227,7 +227,8 @@ class TradeDRLAgent:
             # while environment_steps_metric.result() < num_environment_steps:
             for _ in range(num_iterations):
                 global_step_val = global_step.numpy()
-                if global_step_val % eval_interval == 0:
+                step = tf_agent.train_step_counter.numpy()
+                if step % eval_interval == 0:
                     self._eval_model(
                         eval_metrics,
                         eval_env,
@@ -250,7 +251,6 @@ class TradeDRLAgent:
                     # Run time consuming work here
                     start_time = time.time()
                     total_loss, _ = train_step()
-                    step = tf_agent.train_step_counter.numpy()
                     clear_replay_op = replay_buffer.clear()
                     train_time += time.time() - start_time
                 logging.info(f'train ended')
