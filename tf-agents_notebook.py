@@ -4,38 +4,22 @@
 # - develope a better logging system
 # - fix parallel envoriments
 # - use correct policy batch size for ppo
-# - implement gym env in python
 # - use drivers and replay buffer for predictions
 # - use greedy policy to test (what is "eager mode"?)
-# - policy_000000000 dir
-# - dont use gather_all
 # - organize folders created by modules
 # - use original network numbers
 # - replace print with logging is py_env
-# - what is random_seed in 2 files
 # - change num_parallel_environments
-# - separate get_agent() from model train
 # - choose between ppo and ppoclip agent
 # %% [markdown]
 ## import modules
-import datetime
 import logging
-from pprint import pprint
-
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-import tf_agents
 from IPython import get_ipython
-from tf_agents.environments import suite_gym, tf_py_environment
-from tf_agents.environments.suite_gym import wrap_env
-from tf_agents.environments import utils
 
 import backtest_tse.backtesting_tse as backtest
 from config import config
-from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
 from env_tse.py_env_trading import TradingPyEnv
-# from model.models import TradeDRLAgent
 from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
@@ -85,20 +69,21 @@ tf_agent = TradeDRLAgent().get_agent(
 
 # %% [markdown]
 ## Train
-tf_agents.system.multiprocessing.enable_interactive_mode()
+# tf_agents.system.multiprocessing.enable_interactive_mode()
 
 # %%
-TradeDRLAgent().train_eval(
+TradeDRLAgent().train_PPO(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
     tf_agent=tf_agent,
     collect_episodes_per_iteration=3,
-    num_iterations = 2
+    policy_checkpoint_interval=500000,
+    num_iterations = 3
     )
 
 # %% [markdown]
 ## Predict
-df_account_value, df_actions = TradeDRLAgent.predict_trades(TestPyEnv)
+df_account_value, df_actions = TradeDRLAgent().predict_trades(py_test_env=TestPyEnv)
 
 # %% [markdown]
 ## Trade info
