@@ -1,37 +1,38 @@
 # coding=utf-8
 
-import logging
 import os
 import time
 
+import logging
+
 import gin
-import tensorflow as tf
-from halo import Halo
-from tf_agents.agents.ppo import ppo_clip_agent
-from tf_agents.drivers import dynamic_episode_driver
-# from tf_agents.environments import parallel_py_environment
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+
+from tf_agents.agents.ppo import ppo_agent
+from tf_agents.environments import parallel_py_environment
 from tf_agents.environments import tf_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
-from tf_agents.networks import (actor_distribution_network,
-                                actor_distribution_rnn_network, value_network,
-                                value_rnn_network)
+from tf_agents.networks import actor_distribution_network
+from tf_agents.networks import actor_distribution_rnn_network
+from tf_agents.networks import value_network
+from tf_agents.networks import value_rnn_network
 from tf_agents.policies import policy_saver
+from tf_agents.drivers import dynamic_episode_driver
 # from tf_agents.drivers import dynamic_step_driver
 # from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.replay_buffers import episodic_replay_buffer
 # from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.utils import common
+from halo import Halo
 
 
 class TradeDRLAgent:
     """Provides implementations for DRL algorithms
-
     Attributes
     ----------
         env: environment class
             user-defined class
-
     Methods
     -------
         train_PPO()
@@ -44,39 +45,9 @@ class TradeDRLAgent:
             the implementation for TD3 algorithm
         train_SAC()
             the implementation for SAC algorithm
-        predict_trades()
+        DRL_prediction()
             make a prediction in a test dataset and get results
     """
-
-    def _get_model_dirs(self, root_dir):
-        root_dir = os.path.expanduser(root_dir)
-        train_dir = os.path.join(root_dir, "train")
-        eval_dir = os.path.join(root_dir, "eval")
-        saved_model_dir = os.path.join(root_dir, "policy_saved_model")
-        return train_dir, eval_dir, saved_model_dir
-
-    def _eval_model(
-        self,
-        eval_metrics,
-        eval_env,
-        eval_policy,
-        num_episodes,
-        train_step,
-        summary_writer,
-        summary_prefix
-
-    ):
-        logging.info(f'start eval')
-        metric_utils.eager_compute(
-            eval_metrics,
-            eval_env,
-            eval_policy,
-            num_episodes=num_episodes,
-            train_step=train_step,
-            summary_writer=summary_writer,
-            summary_prefix=summary_prefix,
-        )
-        logging.info(f'end of eval')
 
     @gin.configurable
     def train_PPO(
@@ -87,27 +58,30 @@ class TradeDRLAgent:
         random_seed=None,
         # Params for collect
         # num_environment_steps=25000000,
-        collect_episodes_per_iteration=1,
-        # num_parallel_environments=1,
+        collect_episodes_per_iteration=100,
+        num_parallel_environments=1,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for eval
-        num_eval_episodes=2,
+        num_eval_episodes=3,
         eval_interval=500,
         # Params for summaries and logging
         train_checkpoint_interval=500,
-        policy_checkpoint_interval=500,
+        policy_checkpoint_interval=5,
         log_interval=1000,
         summary_interval=50,
         summaries_flush_secs=1,
         use_tf_functions=True,
-        num_iterations = 10,
+        num_iterations = 10
     ):
         """A train and eval for PPO."""
 
         if root_dir is None:
             raise AttributeError("train_eval requires a root_dir.")
 
-        train_dir, eval_dir, saved_model_dir = self._get_model_dirs(root_dir)
+        root_dir = os.path.expanduser(root_dir)
+        train_dir = os.path.join(root_dir, "train")
+        eval_dir = os.path.join(root_dir, "eval")
+        saved_model_dir = os.path.join(root_dir, "policy_saved_model")
 
         train_summary_writer = tf.summary.create_file_writer(
             train_dir, flush_millis=summaries_flush_secs * 1000
@@ -117,12 +91,10 @@ class TradeDRLAgent:
         eval_summary_writer = tf.summary.create_file_writer(
             eval_dir, flush_millis=summaries_flush_secs * 1000
         )
-
         eval_metrics = [
             tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
             tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
         ]
-
         # TODO replace with tf_agent.train_step_counter.numpy()
         global_step = tf.compat.v1.train.get_or_create_global_step()
         with tf.summary.record_if(
@@ -132,7 +104,7 @@ class TradeDRLAgent:
                 tf.random.set_seed(random_seed)
 
             # train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-            #    [py_env] * num_parallel_environments))
+            #     [py_env] * num_parallel_environments))
             train_py_env = py_env()
             train_env=tf_py_environment.TFPyEnvironment(train_py_env)
             eval_py_env = py_env()
@@ -187,7 +159,8 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    num_steps=256, # should be 256
+                    # sample_batch_size=30,
+                    num_steps=2,
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
@@ -221,15 +194,14 @@ class TradeDRLAgent:
             tf_agent.train_step_counter.assign(0)
             collect_time = 0
             train_time = 0
-            timed_at_step = tf_agent.train_step_counter.numpy()
+            timed_at_step = global_step.numpy()
 
             # TODO what is this step metrics for? 
             # while environment_steps_metric.result() < num_environment_steps:
             for _ in range(num_iterations):
                 global_step_val = global_step.numpy()
-                step = tf_agent.train_step_counter.numpy()
-                if step % eval_interval == 0:
-                    self._eval_model(
+                if global_step_val % eval_interval == 0:
+                    metric_utils.eager_compute(
                         eval_metrics,
                         eval_env,
                         eval_policy,
@@ -237,7 +209,6 @@ class TradeDRLAgent:
                         train_step=global_step,
                         summary_writer=eval_summary_writer,
                         summary_prefix="Metrics",
-
                     )
 
                 logging.info(f'start collecting data to replay buffer')
@@ -245,24 +216,27 @@ class TradeDRLAgent:
                 final_time_step, _ = collect_driver.run()
                 collect_time += time.time() - start_time
                 logging.info(f'collect ended')
+                logging.info(f'collect time: {collect_time}')
 
                 logging.info(f'start training')
                 with Halo(text='Training the model', spinner='dots'):
                     # Run time consuming work here
                     start_time = time.time()
-                    total_loss, _ = train_step()
+                    total_loss = train_step()
+                    step = tf_agent.train_step_counter.numpy()
                     clear_replay_op = replay_buffer.clear()
                     train_time += time.time() - start_time
                 logging.info(f'train ended')
+                logging.info(f'train time: {collect_time}')
 
                 for train_metric in train_metrics:
                     train_metric.tf_summaries(
                         train_step=global_step, step_metrics=step_metrics
                     )
 
-                if step % log_interval == 0:
-                    logging.info("step = %d, loss = %f", step, total_loss)
-                    steps_per_sec = (step - timed_at_step) / (
+                if global_step_val % log_interval == 0:
+                    logging.info("step = %d, loss = %f", global_step_val, total_loss)
+                    steps_per_sec = (global_step_val - timed_at_step) / (
                         collect_time + train_time
                     )
                     logging.info("%.3f steps/sec", steps_per_sec)
@@ -278,10 +252,10 @@ class TradeDRLAgent:
                             step=global_step,
                         )
 
-                if step % train_checkpoint_interval == 0:
+                if global_step_val % train_checkpoint_interval == 0:
                     train_checkpointer.save(global_step=global_step_val)
 
-                if step % policy_checkpoint_interval == 0:
+                if global_step_val % policy_checkpoint_interval == 0:
                     policy_checkpointer.save(global_step=global_step_val)
                     save_policy(saved_model=saved_model,
                                 saved_model_dir=saved_model_dir,
@@ -289,7 +263,7 @@ class TradeDRLAgent:
                                 )
 
             # One final eval before exiting.
-            self._eval_model(
+            metric_utils.eager_compute(
                 eval_metrics,
                 eval_env,
                 eval_policy,
@@ -372,12 +346,15 @@ class TradeDRLAgent:
         use_rnns=False,
         lstm_size=(20,),
         # Params for train
-        num_epochs=10,
-        learning_rate=5e-06,
-        discount_factor=0.99
+        num_epochs=25,
+        learning_rate=1e-3,
     ):
-        """
-        An agent for PPO.
+        # TODO check this parameters from the stable baselines implementation.
+        """An agent for PPO.
+        {'n_steps': 256, 'ent_coef': 0.0, 'learning_rate': 5e-06, 'batch_size': 1024, 'gamma': 0.99}
+        UserWarning: You have specified a mini-batch size of 1024, but because the `RolloutBuffer` is of size `n_steps * n_envs = 256`, after every 0 untruncated mini-batches, there will be a truncated mini-batch of size 256
+        We recommend using a `batch_size` that is a multiple of `n_steps * n_envs`.
+        Info: (n_steps=256 and n_envs=1)
         """
 
         optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
@@ -391,20 +368,19 @@ class TradeDRLAgent:
         # dtype arg. is not used in any tutorial but my code doesn't work without this
         train_step_counter = tf.Variable(0, dtype='int64')
 
-        tf_agent = ppo_clip_agent.PPOClipAgent(
+        tf_agent = ppo_agent.PPOAgent(
 			tf_env.time_step_spec(),
 			tf_env.action_spec(),
 			optimizer,
 			actor_net=actor_net,
 			value_net=value_net,
-            train_step_counter=train_step_counter,
-            discount_factor=discount_factor,
 			num_epochs=num_epochs,
-			# gradient_clipping=0.5,
-			# entropy_regularization=1e-2,
-			# importance_ratio_clipping=0.2,
-			# use_gae=True,
-			# use_td_lambda_return=True,
+			gradient_clipping=0.5,
+			entropy_regularization=1e-2,
+			importance_ratio_clipping=0.2,
+			use_gae=True,
+			use_td_lambda_return=True,
+            train_step_counter=train_step_counter
 		)
         tf_agent.initialize()
         return tf_agent
