@@ -1,16 +1,12 @@
 # %% [markdown]
 #### todo:
-# - devide main notebook to multiple smaller files
-# - develope a better logging system
 # - fix parallel envoriments
 # - use correct policy batch size for ppo
-# - use drivers and replay buffer for predictions
 # - use greedy policy to test (what is "eager mode"?)
 # - organize folders created by modules
 # - use original network numbers
-# - replace print with logging is py_env
+# - replace print with logging in py_env
 # - change num_parallel_environments
-# - choose between ppo and ppoclip agent
 # %% [markdown]
 ## import modules
 import logging
@@ -20,7 +16,7 @@ from IPython import get_ipython
 import backtest_tse.backtesting_tse as backtest
 from config import config
 from env_tse.py_env_trading import TradingPyEnv
-from model.models import TradeDRLAgent
+from model.models_dev import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -78,7 +74,7 @@ TradeDRLAgent().train_PPO(
     tf_agent=tf_agent,
     collect_episodes_per_iteration=1,
     policy_checkpoint_interval=500000,
-    num_iterations = 10
+    num_iterations = 500,
     )
 
 # %% [markdown]
