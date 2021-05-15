@@ -16,7 +16,7 @@ from IPython import get_ipython
 import backtest_tse.backtesting_tse as backtest
 from config import config
 from env_tse.py_env_trading import TradingPyEnv
-from model.models_dev import TradeDRLAgent
+from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -74,7 +74,8 @@ TradeDRLAgent().train_PPO(
     tf_agent=tf_agent,
     collect_episodes_per_iteration=1,
     policy_checkpoint_interval=500000,
-    num_iterations = 500,
+    num_iterations = 20,
+    # use_tf_functions=False
     )
 
 # %% [markdown]

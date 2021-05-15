@@ -187,14 +187,18 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    num_steps=256, # should be 256
+                    sample_batch_size=1024,
+                    num_steps=2, # should be 256
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
                 for _ in range(collect_episodes_per_iteration):
                     trajectories = next(iterator)
-                    batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
-                    train_loss = tf_agent.train(experience=batched_traj)
+                    # TODO delete
+                    # print(tf.nest.map_structure(lambda t: t[4].shape.as_list(), trajectories))
+                    # batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
+                    # batched_traj = tf.nest.map_structure(lambda t: tf.reshape(t, [1, 256, t.get_shape().as_list()[0]]), trajectories)
+                    train_loss = tf_agent.train(experience=trajectories)
                 return train_loss
 
             def save_policy(saved_model, saved_model_dir, step_metrics, is_complete=False):
@@ -341,13 +345,13 @@ class TradeDRLAgent:
                 train_eval_tf_env.observation_spec(),
                 train_eval_tf_env.action_spec(),
                 input_fc_layer_params=actor_fc_layers,
-                output_fc_layer_params=None,
+                output_fc_layer_params=actor_fc_layers,
                 lstm_size=lstm_size,
             )
             value_net = value_rnn_network.ValueRnnNetwork(
                 train_eval_tf_env.observation_spec(),
                 input_fc_layer_params=value_fc_layers,
-                output_fc_layer_params=None,
+                output_fc_layer_params=value_fc_layers,
             )
         else:
             actor_net = actor_distribution_network.ActorDistributionNetwork(
@@ -366,8 +370,10 @@ class TradeDRLAgent:
     def get_agent(
         self,
         py_env,
-        # TODO(b/127576522): rename to policy_fc_layers.
+        # TODO test these values from stable baselines with batch size = 1024
+        # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
         actor_fc_layers=(200, 100),
+        # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
         value_fc_layers=(200, 100),
         use_rnns=False,
         lstm_size=(20,),
