@@ -247,6 +247,8 @@ class TradeDRLAgent:
                 logging.info(f'start collecting data to replay buffer')
                 start_time = time.time()
                 final_time_step, _ = collect_driver.run()
+                # TODO replace with a permanent solution
+                train_py_env.episode = train_py_env.episode-1
                 collect_time += time.time() - start_time
                 logging.info(f'collect ended')
 
