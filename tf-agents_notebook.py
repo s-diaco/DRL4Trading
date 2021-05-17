@@ -38,6 +38,8 @@ class TrainEvalPyEnv(TradingPyEnv):
         super().__init__(
             df=df_train,
             daily_information_cols=information_cols,
+            patient=True,
+            random_start=False,
             cache_indicator_data=False #todo: delete if needed,
             )
 
@@ -74,8 +76,8 @@ TradeDRLAgent().train_PPO(
     tf_agent=tf_agent,
     collect_episodes_per_iteration=1,
     policy_checkpoint_interval=500000,
-    num_iterations = 20,
-    # use_tf_functions=False
+    num_iterations = 100,
+    use_tf_functions=False
     )
 
 # %% [markdown]

@@ -268,6 +268,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
             return reward
 
     def _step(self, actions):
+        # TODO delete 
         # The last action ended the episode. Ignore the current action and start
         # a new episode.
         if self.current_time_step().is_last():

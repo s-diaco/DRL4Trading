@@ -152,6 +152,8 @@ class TradeDRLAgent:
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
 
+            # TODO replace it with another ReplayBuffer 
+            # because it has a bias toward shorter episodes in parallel envs
             replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
                 tf_agent.collect_data_spec,
                 capacity = replay_buffer_capacity,
@@ -187,8 +189,8 @@ class TradeDRLAgent:
         
             def train_step():
                 dataset = replay_buffer.as_dataset(
-                    sample_batch_size=1024,
-                    num_steps=2, # should be 256
+                    # sample_batch_size=1024,
+                    # num_steps=2, should be 256
                     single_deterministic_pass=True
                 )
                 iterator = iter(dataset)
@@ -196,9 +198,9 @@ class TradeDRLAgent:
                     trajectories = next(iterator)
                     # TODO delete
                     # print(tf.nest.map_structure(lambda t: t[4].shape.as_list(), trajectories))
-                    # batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
+                    batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
                     # batched_traj = tf.nest.map_structure(lambda t: tf.reshape(t, [1, 256, t.get_shape().as_list()[0]]), trajectories)
-                    train_loss = tf_agent.train(experience=trajectories)
+                    train_loss = tf_agent.train(experience=batched_traj)
                 return train_loss
 
             def save_policy(saved_model, saved_model_dir, step_metrics, is_complete=False):
