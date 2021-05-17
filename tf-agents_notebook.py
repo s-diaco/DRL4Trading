@@ -76,7 +76,7 @@ TradeDRLAgent().train_PPO(
     tf_agent=tf_agent,
     collect_episodes_per_iteration=1,
     policy_checkpoint_interval=500000,
-    num_iterations = 100,
+    num_iterations = 30,
     use_tf_functions=False
     )
 

@@ -196,6 +196,9 @@ class TradeDRLAgent:
                 iterator = iter(dataset)
                 for _ in range(collect_episodes_per_iteration):
                     trajectories = next(iterator)
+                    # TODO fix this!
+                    while not len(trajectories[0]):
+                        trajectories = next(iterator)
                     # TODO delete
                     # print(tf.nest.map_structure(lambda t: t[4].shape.as_list(), trajectories))
                     batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
