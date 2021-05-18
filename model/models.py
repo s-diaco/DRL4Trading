@@ -199,6 +199,7 @@ class TradeDRLAgent:
                     # TODO fix this!
                     while not len(trajectories[0]):
                         trajectories = next(iterator)
+                        logging.info(f'empty iteration!')
                     # TODO delete
                     # print(tf.nest.map_structure(lambda t: t[4].shape.as_list(), trajectories))
                     batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
@@ -261,7 +262,7 @@ class TradeDRLAgent:
                 with Halo(text='Training the model', spinner='dots'):
                     # Run time consuming work here
                     start_time = time.time()
-                    total_loss, _ = train_step()
+                    total_loss = train_step()
                     clear_replay_op = replay_buffer.clear()
                     train_time += time.time() - start_time
                 logging.info(f'train ended')
