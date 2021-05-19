@@ -75,10 +75,10 @@ TradeDRLAgent().train_PPO(
     py_env=TrainEvalPyEnv,
     tf_agent=tf_agent,
     collect_episodes_per_iteration=2,
-    policy_checkpoint_interval=500000,
-    num_iterations = 10,
-    use_tf_functions=False
-    )
+    policy_checkpoint_interval=10,
+    num_iterations=50,
+    # use_tf_functions=False
+)
 
 # %% [markdown]
 ## Predict
