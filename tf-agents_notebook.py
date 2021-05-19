@@ -74,7 +74,7 @@ TradeDRLAgent().train_PPO(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
     tf_agent=tf_agent,
-    collect_episodes_per_iteration=1,
+    collect_episodes_per_iteration=2,
     policy_checkpoint_interval=500000,
     num_iterations = 10,
     use_tf_functions=False

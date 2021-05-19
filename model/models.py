@@ -152,19 +152,6 @@ class TradeDRLAgent:
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
 
-            # TODO replace it with another ReplayBuffer 
-            # because it has a bias toward shorter episodes in parallel envs
-            replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
-                tf_agent.collect_data_spec,
-                capacity = replay_buffer_capacity,
-                completed_only = True
-            )
-
-            stateful_buffer = episodic_replay_buffer.StatefulEpisodicReplayBuffer(
-                replay_buffer, train_env.batch_size)
-
-            replay_observer = [stateful_buffer.add_batch]
-
             train_checkpointer = common.Checkpointer(
                 ckpt_dir=train_dir,
                 agent=tf_agent,
@@ -180,6 +167,19 @@ class TradeDRLAgent:
 
             train_checkpointer.initialize_or_restore()
             
+            # TODO replace it with another ReplayBuffer 
+            # because it has a bias toward shorter episodes in parallel envs
+            replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
+                tf_agent.collect_data_spec,
+                capacity = replay_buffer_capacity,
+                completed_only = True
+            )
+
+            stateful_buffer = episodic_replay_buffer.StatefulEpisodicReplayBuffer(
+                replay_buffer, train_env.batch_size)
+
+            replay_observer = [stateful_buffer.add_batch]
+
             collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
@@ -196,10 +196,6 @@ class TradeDRLAgent:
                 iterator = iter(dataset)
                 for _ in range(collect_episodes_per_iteration):
                     trajectories = next(iterator)
-                    # TODO fix this!
-                    while not len(trajectories[0]):
-                        trajectories = next(iterator)
-                        logging.info(f'empty iteration!')
                     # TODO delete
                     # print(tf.nest.map_structure(lambda t: t[4].shape.as_list(), trajectories))
                     batched_traj = tf.nest.map_structure(lambda t: tf.expand_dims(t, axis=0), trajectories)
@@ -263,7 +259,7 @@ class TradeDRLAgent:
                     # Run time consuming work here
                     start_time = time.time()
                     total_loss = train_step()
-                    clear_replay_op = replay_buffer.clear()
+                    clear_replay_op = replay_buffer._clear(clear_all_variables=True)
                     train_time += time.time() - start_time
                 logging.info(f'train ended')
 
