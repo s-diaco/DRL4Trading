@@ -20,21 +20,18 @@ import time
 import gin
 import tensorflow as tf
 from halo import Halo
-from tf_agents.agents.ppo import ppo_clip_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import parallel_py_environment
 from tf_agents.environments import tf_py_environment #, batched_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
-from tf_agents.networks import (actor_distribution_network,
-                                actor_distribution_rnn_network, value_network,
-                                value_rnn_network)
 from tf_agents.policies import policy_saver
 # from tf_agents.drivers import dynamic_step_driver
 # from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.replay_buffers import episodic_replay_buffer
 # from tf_agents.system import system_multiprocessing as multiprocessing
 from tf_agents.utils import common
+from .ppo_clip_agent import get_agent
 
 
 class TradeDRLAgent:
@@ -118,7 +115,6 @@ class TradeDRLAgent:
         self,
         root_dir,
         py_env,
-        tf_agent,
         random_seed=None,
         # Params for collect
         # num_environment_steps=25000000,
@@ -157,32 +153,34 @@ class TradeDRLAgent:
             tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
         ]
 
+        # TODO replace it with another parallel from episodic_replay_buffer test 
+        # because it has a bias toward shorter episodes in parallel envs
+        if num_parallel_environments>1:
+            train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
+                [py_env] * num_parallel_environments))
+        else:
+            train_py_env = py_env()
+            train_env=tf_py_environment.TFPyEnvironment(train_py_env)
+        eval_py_env = py_env()
+        eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+
+        # Create environment.
+        # train_py_env = py_env()
+        # py_env = batched_py_environment.BatchedPyEnvironment([
+        #     train_py_env
+        #     for _ in range(num_parallel_environments)
+        # ])
+        # train_env = tf_py_environment.TFPyEnvironment(py_env)
+
+        tf_agent = get_agent(train_env)
         global_step = tf_agent.train_step_counter
+
         with tf.summary.record_if(
             lambda: tf.math.equal(global_step/tf_agent._num_epochs % summary_interval, 0)
         ):
             if random_seed is not None:
                 tf.random.set_seed(random_seed)
             
-            # TODO replace it with another parallel from episodic_replay_buffer test 
-            # because it has a bias toward shorter episodes in parallel envs
-            if num_parallel_environments>1:
-                train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-                    [py_env] * num_parallel_environments))
-            else:
-                train_py_env = py_env()
-                train_env=tf_py_environment.TFPyEnvironment(train_py_env)
-            eval_py_env = py_env()
-            eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-
-            # Create environment.
-            # train_py_env = py_env()
-            # py_env = batched_py_environment.BatchedPyEnvironment([
-            #     train_py_env
-            #     for _ in range(num_parallel_environments)
-            # ])
-            # train_env = tf_py_environment.TFPyEnvironment(py_env)
-
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
 
@@ -374,82 +372,3 @@ class TradeDRLAgent:
             # transitions.append([time_step, policy_step])
         # return account_memory[0], actions_memory[0]
         return account_memory, actions_memory
-
-    def create_networks(
-        self, train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
-    ):
-        # TODO replace with one "fc_layer_params" in the last version
-        if use_rnns:
-            actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
-                train_eval_tf_env.observation_spec(),
-                train_eval_tf_env.action_spec(),
-                input_fc_layer_params=actor_fc_layers,
-                output_fc_layer_params=actor_fc_layers,
-                lstm_size=lstm_size,
-            )
-            value_net = value_rnn_network.ValueRnnNetwork(
-                train_eval_tf_env.observation_spec(),
-                input_fc_layer_params=value_fc_layers,
-                output_fc_layer_params=value_fc_layers,
-            )
-        else:
-            actor_net = actor_distribution_network.ActorDistributionNetwork(
-                train_eval_tf_env.observation_spec(),
-                train_eval_tf_env.action_spec(),
-                fc_layer_params=actor_fc_layers,
-                activation_fn=tf.keras.activations.tanh,
-            )
-            value_net = value_network.ValueNetwork(
-                train_eval_tf_env.observation_spec(),
-                fc_layer_params=value_fc_layers,
-                activation_fn=tf.keras.activations.tanh,
-            )
-        return actor_net, value_net
-
-    def get_agent(
-        self,
-        py_env,
-        # TODO test these values from stable baselines with batch size = 1024
-        # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-        actor_fc_layers=(200, 100),
-        # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-        value_fc_layers=(200, 100),
-        use_rnns=False,
-        lstm_size=(20,),
-        # Params for train
-        num_epochs=10,
-        learning_rate=5e-06,
-        discount_factor=0.99
-    ):
-        """
-        An agent for PPO.
-        """
-
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-        tf_env = tf_py_environment.TFPyEnvironment(py_env)
-
-        actor_net, value_net = self.create_networks(
-            tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
-        )
-
-        # dtype arg. is not used in any tutorial but my code doesn't work without this
-        train_step_counter = tf.Variable(0, dtype='int64')
-
-        tf_agent = ppo_clip_agent.PPOClipAgent(
-			tf_env.time_step_spec(),
-			tf_env.action_spec(),
-			optimizer,
-			actor_net=actor_net,
-			value_net=value_net,
-            train_step_counter=train_step_counter,
-            discount_factor=discount_factor,
-			num_epochs=num_epochs,
-			# gradient_clipping=0.5,
-			# entropy_regularization=1e-2,
-			# importance_ratio_clipping=0.2,
-			# use_gae=True,
-			# use_td_lambda_return=True,
-		)
-        tf_agent.initialize()
-        return tf_agent

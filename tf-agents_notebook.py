@@ -2,13 +2,13 @@
 #### todo:
 # - fix parallel envoriments
 # - use correct policy batch size for ppo
-# - use greedy policy to test (what is "eager mode"?)
 # - organize folders created by modules
 # - use original network numbers
 # - replace print with logging in py_env
-# - change num_parallel_environments
 # - write tests
 # - what does dicount mean?
+# - is every requirement necessary?
+
 # %% [markdown]
 ## import modules
 import logging
@@ -34,7 +34,8 @@ df_train, df_trade = preprocess_data()
 information_cols = ["daily_variance", "change", "log_volume"]
 
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
-logging.info(f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
+logging.info(
+    f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
 
 class TrainEvalPyEnv(TradingPyEnv):
@@ -44,8 +45,8 @@ class TrainEvalPyEnv(TradingPyEnv):
             daily_information_cols=information_cols,
             patient=True,
             random_start=False,
-            cache_indicator_data=False #todo: delete if needed,
-            )
+            cache_indicator_data=False  # todo: delete if needed,
+        )
 
 
 class TestPyEnv(TradingPyEnv):
@@ -57,17 +58,8 @@ class TestPyEnv(TradingPyEnv):
             discrete_actions=True,
             shares_increment=10,
             patient=True,
-            random_start=False,)
-
-# %% todo: delete - test the envirement
-# environment = TestPyEnv()
-# utils.validate_py_environment(environment, episodes=2)
-
-# %% [markdown]
-## Agent
-tf_agent = TradeDRLAgent().get_agent(
-    py_env=TrainEvalPyEnv,
-)
+            random_start=False,
+        )
 
 # %% [markdown]
 ## Train
@@ -79,7 +71,6 @@ if num_parallel_calls > 1:
 TradeDRLAgent().train_PPO(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
-    tf_agent=tf_agent,
     collect_episodes_per_iteration=2,
     policy_checkpoint_interval=10,
     num_iterations=50,
