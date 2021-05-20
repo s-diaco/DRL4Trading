@@ -1,7 +1,6 @@
-import os
 import numpy as np
 import pandas as pd
-from tf_agents.environments import py_environment, utils
+from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step
 import random
@@ -268,11 +267,10 @@ class TradingPyEnv(py_environment.PyEnvironment):
             return reward
 
     def _step(self, actions):
-        # TODO delete 
-        # The last action ended the episode. Ignore the current action and start
-        # a new episode.
-        if self.current_time_step().is_last():
-            return self.reset()
+        # TODO delete and use handle_auto_reset=True from the last version 
+        # (refer to tf_agent's example tic_tac_toe_environment.py).
+        if self._current_time_step.is_last():
+            return self._reset()
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time

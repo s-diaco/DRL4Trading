@@ -7,17 +7,20 @@
 # - use original network numbers
 # - replace print with logging in py_env
 # - change num_parallel_environments
+# - write tests
 # %% [markdown]
 ## import modules
 import logging
 import tensorflow as tf
 from IPython import get_ipython
 
+import tf_agents.system
 import backtest_tse.backtesting_tse as backtest
 from config import config
 from env_tse.py_env_trading import TradingPyEnv
 from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
+
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
@@ -67,7 +70,9 @@ tf_agent = TradeDRLAgent().get_agent(
 
 # %% [markdown]
 ## Train
-# tf_agents.system.multiprocessing.enable_interactive_mode()
+num_parallel_calls = 1
+if num_parallel_calls > 1:
+    tf_agents.system.multiprocessing.enable_interactive_mode()
 
 # %%
 TradeDRLAgent().train_PPO(
@@ -77,6 +82,7 @@ TradeDRLAgent().train_PPO(
     collect_episodes_per_iteration=2,
     policy_checkpoint_interval=10,
     num_iterations=50,
+    num_parallel_environments=num_parallel_calls,
     # use_tf_functions=False
 )
 

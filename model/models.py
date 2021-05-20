@@ -22,8 +22,8 @@ import tensorflow as tf
 from halo import Halo
 from tf_agents.agents.ppo import ppo_clip_agent
 from tf_agents.drivers import dynamic_episode_driver
-# from tf_agents.environments import parallel_py_environment
-from tf_agents.environments import tf_py_environment
+from tf_agents.environments import parallel_py_environment
+from tf_agents.environments import tf_py_environment #, batched_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
 from tf_agents.networks import (actor_distribution_network,
@@ -123,7 +123,7 @@ class TradeDRLAgent:
         # Params for collect
         # num_environment_steps=25000000,
         collect_episodes_per_iteration=1,
-        # num_parallel_environments=1,
+        num_parallel_environments=1,
         replay_buffer_capacity=1001,  # Per-environment
         # Params for eval
         num_eval_episodes=2,
@@ -166,12 +166,22 @@ class TradeDRLAgent:
             
             # TODO replace it with another parallel from episodic_replay_buffer test 
             # because it has a bias toward shorter episodes in parallel envs
-            # train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-            #    [py_env] * num_parallel_environments))
-            train_py_env = py_env()
-            train_env=tf_py_environment.TFPyEnvironment(train_py_env)
+            if num_parallel_environments>1:
+                train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
+                    [py_env] * num_parallel_environments))
+            else:
+                train_py_env = py_env()
+                train_env=tf_py_environment.TFPyEnvironment(train_py_env)
             eval_py_env = py_env()
             eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+
+            # Create environment.
+            # train_py_env = py_env()
+            # py_env = batched_py_environment.BatchedPyEnvironment([
+            #     train_py_env
+            #     for _ in range(num_parallel_environments)
+            # ])
+            # train_env = tf_py_environment.TFPyEnvironment(py_env)
 
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
@@ -368,6 +378,7 @@ class TradeDRLAgent:
     def create_networks(
         self, train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
     ):
+        # TODO replace with one "fc_layer_params" in the last version
         if use_rnns:
             actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
                 train_eval_tf_env.observation_spec(),
@@ -414,7 +425,7 @@ class TradeDRLAgent:
         An agent for PPO.
         """
 
-        optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         tf_env = tf_py_environment.TFPyEnvironment(py_env)
 
