@@ -8,6 +8,7 @@
 # - replace print with logging in py_env
 # - change num_parallel_environments
 # - write tests
+# - what does dicount mean?
 # %% [markdown]
 ## import modules
 import logging
