@@ -22,7 +22,7 @@ import tensorflow as tf
 from halo import Halo
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import parallel_py_environment
-from tf_agents.environments import tf_py_environment #, batched_py_environment
+from tf_agents.environments import tf_py_environment  # , batched_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
 from tf_agents.policies import policy_saver
@@ -86,7 +86,7 @@ class TradeDRLAgent:
             summary_prefix=summary_prefix,
         )
         logging.info(f'end of eval')
-    
+
     def _save_policy(
         self,
         eval_policy,
@@ -107,7 +107,8 @@ class TradeDRLAgent:
                 ("%d" %
                     step_metrics[1].environment_steps.numpy()).zfill(9),
             )
-        saved_model = policy_saver.PolicySaver(eval_policy, train_step=global_step)
+        saved_model = policy_saver.PolicySaver(
+            eval_policy, train_step=global_step)
         saved_model.save(saved_model_path)
 
     @gin.configurable
@@ -131,7 +132,7 @@ class TradeDRLAgent:
         summary_interval=4,
         summaries_flush_secs=1,
         use_tf_functions=True,
-        num_iterations = 10,
+        num_iterations=10,
     ):
         """A train and eval for PPO."""
 
@@ -150,17 +151,18 @@ class TradeDRLAgent:
         )
         eval_metrics = [
             tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
-            tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
+            tf_metrics.AverageEpisodeLengthMetric(
+                buffer_size=num_eval_episodes),
         ]
 
-        # TODO replace it with another parallel from episodic_replay_buffer test 
+        # TODO replace it with another parallel from episodic_replay_buffer test
         # because it has a bias toward shorter episodes in parallel envs
-        if num_parallel_environments>1:
+        if num_parallel_environments > 1:
             train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
                 [py_env] * num_parallel_environments))
         else:
             train_py_env = py_env()
-            train_env=tf_py_environment.TFPyEnvironment(train_py_env)
+            train_env = tf_py_environment.TFPyEnvironment(train_py_env)
         eval_py_env = py_env()
         eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
@@ -176,11 +178,12 @@ class TradeDRLAgent:
         global_step = tf_agent.train_step_counter
 
         with tf.summary.record_if(
-            lambda: tf.math.equal(global_step/tf_agent._num_epochs % summary_interval, 0)
+            lambda: tf.math.equal(
+                global_step/tf_agent._num_epochs % summary_interval, 0)
         ):
             if random_seed is not None:
                 tf.random.set_seed(random_seed)
-            
+
             eval_policy = tf_agent.policy
             collect_policy = tf_agent.collect_policy
 
@@ -198,7 +201,8 @@ class TradeDRLAgent:
                 ckpt_dir=train_dir,
                 agent=tf_agent,
                 global_step=global_step,
-                metrics=metric_utils.MetricsGroup(train_metrics, "train_metrics"),
+                metrics=metric_utils.MetricsGroup(
+                    train_metrics, "train_metrics"),
             )
             policy_checkpointer = common.Checkpointer(
                 ckpt_dir=os.path.join(train_dir, "policy"),
@@ -207,15 +211,17 @@ class TradeDRLAgent:
             )
 
             train_checkpointer.initialize_or_restore()
-            
+
             replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
                 tf_agent.collect_data_spec,
-                capacity = replay_buffer_capacity,
-                completed_only = True
+                capacity=replay_buffer_capacity,
+                completed_only=True
             )
 
             stateful_buffer = episodic_replay_buffer.StatefulEpisodicReplayBuffer(
-                replay_buffer, train_env.batch_size)
+                replay_buffer,
+                train_env.batch_size
+            )
 
             replay_observer = [stateful_buffer.add_batch]
 
@@ -225,7 +231,7 @@ class TradeDRLAgent:
                 observers=replay_observer + train_metrics,
                 num_episodes=collect_episodes_per_iteration,
             )
-        
+
             def train_step():
                 dataset = replay_buffer.as_dataset(
                     # sample_batch_size=1024,
@@ -248,14 +254,15 @@ class TradeDRLAgent:
                 collect_driver.run = common.function(
                     collect_driver.run, autograph=False
                 )
-                tf_agent.train = common.function(tf_agent.train, autograph=False)
+                tf_agent.train = common.function(
+                    tf_agent.train, autograph=False)
                 train_step = common.function(train_step)
 
             collect_time = 0
             train_time = 0
             timed_at_step = global_step.numpy()
 
-            # TODO what is this step metrics for? 
+            # TODO what is this step metrics for?
             # while environment_steps_metric.result() < num_environment_steps:
             for _ in range(num_iterations):
                 global_step_val = global_step.numpy()/tf_agent._num_epochs
@@ -283,7 +290,8 @@ class TradeDRLAgent:
                     # Run time consuming work here
                     start_time = time.time()
                     total_loss = train_step()
-                    clear_replay_op = replay_buffer._clear(clear_all_variables=True)
+                    clear_replay_op = replay_buffer._clear(
+                        clear_all_variables=True)
                     train_time += time.time() - start_time
                 logging.info(f'train ended')
 
@@ -293,7 +301,8 @@ class TradeDRLAgent:
                     )
 
                 if global_step_val % log_interval == 0:
-                    logging.info("step = %d, loss = %f", global_step_val, total_loss)
+                    logging.info("step = %d, loss = %f",
+                                 global_step_val, total_loss)
                     steps_per_sec = (global_step.numpy() - timed_at_step) / (
                         collect_time + train_time
                     )
@@ -309,7 +318,7 @@ class TradeDRLAgent:
                             data=steps_per_sec,
                             step=global_step,
                         )
-                    
+
                     timed_at_step = global_step_val
                     collect_time = 0
                     train_time = 0
@@ -355,7 +364,8 @@ class TradeDRLAgent:
         pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
 
         # load policy
-        policy_path = os.path.join("trained_models/policy_saved_model/complete_policy")
+        policy_path = os.path.join(
+            "trained_models/policy_saved_model/complete_policy")
         policy = tf.saved_model.load(policy_path)
         # account_memory = []
         # actions_memory = []

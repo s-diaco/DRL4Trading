@@ -4,8 +4,9 @@ from tf_agents.networks import (actor_distribution_network,
                                 actor_distribution_rnn_network, value_network,
                                 value_rnn_network)
 
+
 def create_networks(train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
-):
+                    ):
     # TODO replace with one "fc_layer_params" in the last version
     if use_rnns:
         actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
@@ -33,6 +34,7 @@ def create_networks(train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layer
             activation_fn=tf.keras.activations.tanh,
         )
     return actor_net, value_net
+
 
 def get_agent(
     env,
