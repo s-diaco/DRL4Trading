@@ -39,6 +39,7 @@ class tse_data:
         self.start_date = start_date
         self.end_date = end_date
         self.ticker_list = ticker_list
+        self.baseline_df = self.get_tse_index()
 
     def get_tse_index(self) -> pd.DataFrame:
         logging.info(f"Adding TSEI.")
@@ -60,6 +61,7 @@ class tse_data:
         df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
         df["tic"] = "TSEI"
         df = df[(df["date"] > self.start_date) & (df["date"] < self.end_date)]
+        df = df.set_index('date')
         logging.info(f"Added TSEI.")
         return df
 
@@ -74,9 +76,11 @@ class tse_data:
         """
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
-    def process_single_tic(self, df, ticker, baseline_dates) -> pd.DataFrame:
-        df = df.reindex(baseline_dates)
+    def process_single_tic(self, df, ticker) -> pd.DataFrame:
+        df = df.reindex(self.baseline_df.index)
         df["tic"] = ticker
+        df['index_close']= self.baseline_df['close']
+        df['index_volume']= self.baseline_df['volume']
         df["stopped"] = df["open"].isnull()
         df["b_queue"] = (df["high"] == df["low"]) & (df["low"] > df["yesterday"])
         df["s_queue"] = (df["high"] == df["low"]) & (df["high"] < df["yesterday"])    
@@ -94,8 +98,6 @@ class tse_data:
         path = pathlb.Path.cwd()
         out_dir_all = path / out_dir
         li = []
-        baseline_df = self.get_tse_index()
-        new_index = pd.to_datetime(baseline_df["date"])
         for tic in self.ticker_list:
             logging.info(f"Adding file: {tic}")
             # using data from tseclient_v2
@@ -127,7 +129,7 @@ class tse_data:
                         date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
                     )
             if not df.empty:
-                df = self.process_single_tic(df, tic, new_index)
+                df = self.process_single_tic(df, tic)
                 li.append(df)
 
         frame = pd.concat(li, axis=0, ignore_index=True)

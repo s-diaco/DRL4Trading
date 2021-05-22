@@ -5,8 +5,6 @@
 # - use original network numbers
 # - replace print with logging in py_env
 # - write tests
-# - what does dicount mean?
-# - is every requirement necessary?
 # - does every train resume from previous chkpt from prev days?
 
 # %% [markdown]
@@ -63,8 +61,8 @@ class TestPyEnv(TradingPyEnv):
 
 # %% [markdown]
 ## Train
-num_parallel_calls = 3
-if num_parallel_calls > 1:
+N_PARALLEL_CALLS = 3
+if N_PARALLEL_CALLS > 1:
     tf_agents.system.multiprocessing.enable_interactive_mode()
 
 # %%
@@ -74,7 +72,7 @@ TradeDRLAgent().train_PPO(
     collect_episodes_per_iteration=2,
     policy_checkpoint_interval=10,
     num_iterations=50,
-    num_parallel_environments=num_parallel_calls,
+    num_parallel_environments=N_PARALLEL_CALLS,
     # use_tf_functions=False
 )
 
