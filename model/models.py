@@ -22,7 +22,7 @@ import tensorflow as tf
 from halo import Halo
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import parallel_py_environment
-from tf_agents.environments import tf_py_environment  # , batched_py_environment
+from tf_agents.environments import tf_py_environment, batched_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
 from tf_agents.policies import policy_saver
@@ -121,7 +121,7 @@ class TradeDRLAgent:
         # num_environment_steps=25000000,
         collect_episodes_per_iteration=1,
         num_parallel_environments=1,
-        replay_buffer_capacity=1001,  # Per-environment
+        replay_buffer_capacity=100000,  # Per-environment
         # Params for eval
         num_eval_episodes=2,
         eval_interval=20,
@@ -133,6 +133,7 @@ class TradeDRLAgent:
         summaries_flush_secs=1,
         use_tf_functions=True,
         num_iterations=10,
+        use_parallel_envs=False
     ):
         """A train and eval for PPO."""
 
@@ -155,24 +156,28 @@ class TradeDRLAgent:
                 buffer_size=num_eval_episodes),
         ]
 
-        # TODO replace it with another parallel from episodic_replay_buffer test
-        # because it has a bias toward shorter episodes in parallel envs
-        if num_parallel_environments > 1:
-            train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-                [py_env] * num_parallel_environments))
+        # Create environment
+        # replacing 'parallel_py_environment.ParallelPyEnvironment'
+        # with      'batched_py_environment.BatchedPyEnvironment' 
+        # to avoid using multi-process and use multi-thread instead. Although it would be slower
+        if use_parallel_envs:
+            if num_parallel_environments > 1:
+                train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
+                    [py_env] * num_parallel_environments))
+            else:
+                train_py_env = py_env()
+                train_env = tf_py_environment.TFPyEnvironment(train_py_env)
+
         else:
             train_py_env = py_env()
-            train_env = tf_py_environment.TFPyEnvironment(train_py_env)
+            batched_py_env = batched_py_environment.BatchedPyEnvironment([
+                train_py_env
+                for _ in range(num_parallel_environments)
+            ])
+            train_env = tf_py_environment.TFPyEnvironment(py_env)
+
         eval_py_env = py_env()
         eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-
-        # Create environment.
-        # train_py_env = py_env()
-        # py_env = batched_py_environment.BatchedPyEnvironment([
-        #     train_py_env
-        #     for _ in range(num_parallel_environments)
-        # ])
-        # train_env = tf_py_environment.TFPyEnvironment(py_env)
 
         tf_agent = get_agent(train_env)
         global_step = tf_agent.train_step_counter
@@ -193,8 +198,12 @@ class TradeDRLAgent:
                 environment_steps_metric,
             ]
             train_metrics = step_metrics + [
-                tf_metrics.AverageReturnMetric(),
-                tf_metrics.AverageEpisodeLengthMetric(),
+                tf_metrics.AverageReturnMetric(
+                    batch_size=train_env.batch_size
+                ),
+                tf_metrics.AverageEpisodeLengthMetric(
+                    batch_size=train_env.batch_size
+                ),
             ]
 
             train_checkpointer = common.Checkpointer(
@@ -225,6 +234,9 @@ class TradeDRLAgent:
 
             replay_observer = [stateful_buffer.add_batch]
 
+            # TODO it has a bias toward shorter episodes in parallel envs 
+            # (more info: tf_agents/drivers/dynamic_episode_driver.py) 
+            # or just use one paralleled or batched env per iteration.
             collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
                 collect_policy,
@@ -261,6 +273,10 @@ class TradeDRLAgent:
             collect_time = 0
             train_time = 0
             timed_at_step = global_step.numpy()
+            
+            # TODO or just: collect_driver.run() (without parameters)
+            time_step = None
+            policy_state = collect_policy.get_initial_state(train_env.batch_size)
 
             # TODO what is this step metrics for?
             # while environment_steps_metric.result() < num_environment_steps:
@@ -279,9 +295,10 @@ class TradeDRLAgent:
 
                 logging.info(f'start collecting data to replay buffer')
                 start_time = time.time()
-                final_time_step, _ = collect_driver.run()
-                # TODO replace with a permanent solution
-                train_py_env.episode = train_py_env.episode-1
+                time_step, policy_state = collect_driver.run(
+                    time_step=time_step,
+                    policy_state=policy_state
+                )
                 collect_time += time.time() - start_time
                 logging.info(f'collect ended')
 
@@ -290,7 +307,7 @@ class TradeDRLAgent:
                     # Run time consuming work here
                     start_time = time.time()
                     total_loss = train_step()
-                    clear_replay_op = replay_buffer._clear(
+                    replay_buffer._clear(
                         clear_all_variables=True)
                     train_time += time.time() - start_time
                 logging.info(f'train ended')

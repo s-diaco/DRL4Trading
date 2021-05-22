@@ -1,6 +1,5 @@
 # %% [markdown]
 #### todo:
-# - fix parallel envoriments
 # - use correct policy batch size for ppo
 # - organize folders created by modules
 # - use original network numbers
@@ -8,6 +7,7 @@
 # - write tests
 # - what does dicount mean?
 # - is every requirement necessary?
+# - does every train resume from previous chkpt from prev days?
 
 # %% [markdown]
 ## import modules
@@ -63,7 +63,7 @@ class TestPyEnv(TradingPyEnv):
 
 # %% [markdown]
 ## Train
-num_parallel_calls = 1
+num_parallel_calls = 3
 if num_parallel_calls > 1:
     tf_agents.system.multiprocessing.enable_interactive_mode()
 

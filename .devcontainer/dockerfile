@@ -15,4 +15,4 @@ COPY requirements.txt /tmp/pip-tmp/
 RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
     && rm -rf /tmp/pip-tmp
 RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/quantopian/pyfolio.git
-RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/Glyphack/pytse-client.git
+# RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/Glyphack/pytse-client.git
