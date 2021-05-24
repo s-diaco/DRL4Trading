@@ -3,7 +3,6 @@
 # - use correct policy batch size for ppo
 # - organize folders created by modules
 # - use original network numbers
-# - replace print with logging in py_env
 # - write tests
 # - does every train resume from previous chkpt from prev days?
 

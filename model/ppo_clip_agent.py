@@ -40,9 +40,9 @@ def get_agent(
     env,
     # TODO test these values from stable baselines with batch size = 1024
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-    actor_fc_layers=(200, 100),
+    actor_fc_layers=(1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024),
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-    value_fc_layers=(200, 100),
+    value_fc_layers=(1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024),
     use_rnns=False,
     lstm_size=(20,),
     # Params for train

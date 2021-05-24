@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 from tf_agents.environments import py_environment
@@ -110,11 +111,11 @@ class TradingPyEnv(py_environment.PyEnvironment):
         self.cached_data = None
         self.cash_penalty_proportion = cash_penalty_proportion
         if self.cache_indicator_data:
-            print("caching data")
+            logging.info("caching data")
             self.cached_data = [
                 self.get_date_vector(i) for i, _ in enumerate(self.dates)
             ]
-            print("data cached!")
+            logging.info("data cached!")
 
     def action_spec(self):
         return self._action_spec
@@ -183,7 +184,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
     def return_terminal(self, reason="Last Date", reward=0):
         state = self.state_memory[-1]
         self.log_step(reason=reason, terminal_reward=reward)
-        
+
         return time_step.termination(observation=state, reward=reward)
 
     def log_step(self, reason, terminal_reward=None):
@@ -206,23 +207,22 @@ class TradingPyEnv(py_environment.PyEnvironment):
             f"{cash_pct*100:0.2f}%",
         ]
         self.episode_history.append(rec)
-        print(self.template.format(*rec))
+        logging.info(f'{self.template.format(*rec)}')
 
     def log_header(self):
         # column widths: 8, 10, 15, 7, 10
         self.template = "{0:4}|{1:4}|{2:15}|{3:15}|{4:15}|{5:10}|{6:10}|{7:10}"
-        print(
-            self.template.format(
-                "EPISODE",
-                "STEPS",
-                "TERMINAL_REASON",
-                "CASH",
-                "TOT_ASSETS",
-                "TERMINAL_REWARD_unsc",
-                "GAINLOSS_PCT",
-                "CASH_PROPORTION",
-            )
+        header_str = self.template.format(
+            "EPISODE",
+            "STEPS",
+            "TERMINAL_REASON",
+            "CASH",
+            "TOT_ASSETS",
+            "TERMINAL_REWARD_unsc",
+            "GAINLOSS_PCT",
+            "CASH_PROPORTION",
         )
+        logging.info(f'{header_str}')
         self.printed_header = True
 
     def get_reward(self):
@@ -267,7 +267,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
             return reward
 
     def _step(self, actions):
-        # TODO delete and use handle_auto_reset=True from the last version 
+        # TODO delete and use handle_auto_reset=True from the last version
         # (refer to tf_agent's example tic_tac_toe_environment.py).
         if self._current_time_step.is_last():
             return self._reset()
@@ -416,10 +416,10 @@ class TradingPyEnv(py_environment.PyEnvironment):
                 buys > 0,
                 self.avg_buy_price +
                 np.divide(closings - self.avg_buy_price,
-                            self.n_buys,
-                            out=np.zeros_like(self.n_buys),
-                            where=self.n_buys!=0
-                            ),
+                          self.n_buys,
+                          out=np.zeros_like(self.n_buys),
+                          where=self.n_buys != 0
+                          ),
                 self.avg_buy_price,
             )  # incremental average
 

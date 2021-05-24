@@ -303,8 +303,7 @@ class TradeDRLAgent:
                 logging.info(f'collect ended')
 
                 logging.info(f'start training')
-                with Halo(text='Training the model', spinner='dots'):
-                    # Run time consuming work here
+                with Halo(text='Training the model', spinner='arrow3'):
                     start_time = time.time()
                     total_loss = train_step()
                     replay_buffer._clear(

@@ -76,15 +76,18 @@ class tse_data:
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
     def process_single_tic(self, df, ticker, bline_index) -> pd.DataFrame:
+
         df = df.reindex(bline_index.index)
         df["tic"] = ticker
-        df['index_close']= bline_index['close']
-        df['index_volume']= bline_index['volume']
+        df['index_close'] = bline_index['close']
+        df['index_volume'] = bline_index['volume']
         df["stopped"] = df["open"].isnull()
-        df["b_queue"] = (df["high"] == df["low"]) & (df["low"] > df["yesterday"])
-        df["s_queue"] = (df["high"] == df["low"]) & (df["high"] < df["yesterday"])    
-        df=df.fillna(method='ffill')
-        df=df.fillna(method='bfill')
+        df["b_queue"] = (df["high"] == df["low"]) & (
+            df["low"] > df["yesterday"])
+        df["s_queue"] = (df["high"] == df["low"]) & (
+            df["high"] < df["yesterday"])
+        df = df.fillna(method='ffill')
+        df = df.fillna(method='bfill')
         df = df.reset_index()
         # create day of the week column (monday = 0+2)
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek + 2) % 7
@@ -118,14 +121,16 @@ class tse_data:
                 if adjusted:
                     logging.error(f"No data for {tic}")
                 else:
-                    logging.info(f"No downloaded data for {tic}. downloading...")
+                    logging.info(
+                        f"No downloaded data for {tic}. downloading...")
                     self.tse_downloader(tic, path / in_dir)
                     df = pd.read_csv(
                         path / in_dir / tic_fnp,
                         index_col="date",
                         parse_dates=["date"],
                         header=0,
-                        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+                        date_parser=lambda x: pd.to_datetime(
+                            x, format="%Y-%m-%d"),
                     )
             if not df.empty:
                 df = self.process_single_tic(df,
@@ -143,7 +148,8 @@ class tse_data:
 
     # todo: delete
     def combine_csv(self) -> pd.DataFrame:
-        logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
+        logging.basicConfig(
+            format="%(asctime)s - %(message)s", level=logging.INFO)
         # %% csv files
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR
