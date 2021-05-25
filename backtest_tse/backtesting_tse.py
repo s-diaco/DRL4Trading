@@ -1,7 +1,10 @@
+import logging
+
 from finrl.trade.backtest import backtest_stats
 from IPython import get_ipython
+
 import backtest_tse.tse_backtest_plot as bt_plt
-import logging
+
 
 def backtest_tse_trades(df_account_value, baseline, start_date, end_date):
     # ## 7.1 Backtest Stats

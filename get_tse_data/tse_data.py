@@ -1,17 +1,12 @@
 # %% common library
 import glob
-import os
 import pathlib as pathlb
-import numpy as np
 import pandas as pd
 import get_tse_data.tse_config.tse_config as cfg
 import logging
 import pytse_client as tse
 from pathlib import Path
-from shutil import copyfile
 from finrl.trade.backtest import get_baseline
-
-# %%
 
 
 class tse_data:
@@ -39,10 +34,14 @@ class tse_data:
         self.start_date = start_date
         self.end_date = end_date
         self.ticker_list = ticker_list
-        self.baseline_df = self.get_tse_index()
+        self.baseline_df = self._get_tse_index()
+        self.index_for_single_tic = self.baseline_df.set_index('date')
 
-    def get_tse_index(self) -> pd.DataFrame:
-        logging.info(f"Adding TSEI.")
+    def _get_tse_index(self) -> pd.DataFrame:
+        """
+        get tse index as a dataframe
+        """
+        logging.info(f"Adding TSE Index.")
 
         path = pathlb.Path.cwd()
         # tsei_dir = cfg.CSV_DIR
@@ -61,7 +60,7 @@ class tse_data:
         df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
         df["tic"] = "TSEI"
         df = df[(df["date"] > self.start_date) & (df["date"] < self.end_date)]
-        logging.info(f"Added TSEI.")
+        logging.info(f"Added TSE Index.")
         return df
 
     def tse_downloader(self, tic, base_path):
@@ -75,12 +74,50 @@ class tse_data:
         """
         tse.download(symbols=tic, write_to_csv=True, base_path=str(base_path))
 
-    def process_single_tic(self, df, ticker, bline_index) -> pd.DataFrame:
+    def process_single_tic(self,
+                           ticker,
+                           adjusted,
+                           path,
+                           in_dir) -> pd.DataFrame:
+        """
+        prepare a single ticker and return the df
+        """
+        logging.info(f"Adding file: {ticker}")
+        # using data from tseclient_v2
+        if adjusted:
+            tic_fn = "adjusted/" + ticker + "-ت.csv"
+        else:
+            tic_fn = ticker + ".csv"
+        tic_fnp = Path(tic_fn)
+        # if there is a downloaded csv file, open it; otherwise download and save a csv file for the ticker
+        try:
+            df = pd.read_csv(
+                path / in_dir / tic_fnp,
+                index_col="date",
+                parse_dates=["date"],
+                header=0,
+                date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+            )
+        except:
+            if adjusted:
+                logging.error(f"No data for {ticker}")
+            else:
+                logging.info(
+                    f"No downloaded data for {ticker}. downloading...")
+                self.tse_downloader(ticker, path / in_dir)
+                df = pd.read_csv(
+                    path / in_dir / tic_fnp,
+                    index_col="date",
+                    parse_dates=["date"],
+                    header=0,
+                    date_parser=lambda x: pd.to_datetime(
+                        x, format="%Y-%m-%d"),
+                )
 
-        df = df.reindex(bline_index.index)
+        df = df.reindex(self.index_for_single_tic.index)
         df["tic"] = ticker
-        df['index_close'] = bline_index['close']
-        df['index_volume'] = bline_index['volume']
+        df['index_close'] = self.index_for_single_tic['close']
+        df['index_volume'] = self.index_for_single_tic['volume']
         df["stopped"] = df["open"].isnull()
         df["b_queue"] = (df["high"] == df["low"]) & (
             df["low"] > df["yesterday"])
@@ -94,6 +131,9 @@ class tse_data:
         return df
 
     def fetch_data(self, adjusted=True) -> pd.DataFrame:
+        """
+        get ticker data
+        """
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR
         exp_filename = cfg.EXP_FILE_NAME
@@ -101,42 +141,13 @@ class tse_data:
         out_dir_all = path / out_dir
         li = []
         for tic in self.ticker_list:
-            logging.info(f"Adding file: {tic}")
-            # using data from tseclient_v2
-            if adjusted:
-                tic_fn = "adjusted/" + tic + "-ت.csv"
-            else:
-                tic_fn = tic + ".csv"
-            tic_fnp = Path(tic_fn)
-            # if there is a downloaded csv file, open it; otherwise download and save a csv file for the ticker
-            try:
-                df = pd.read_csv(
-                    path / in_dir / tic_fnp,
-                    index_col="date",
-                    parse_dates=["date"],
-                    header=0,
-                    date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
-                )
-            except:
-                if adjusted:
-                    logging.error(f"No data for {tic}")
-                else:
-                    logging.info(
-                        f"No downloaded data for {tic}. downloading...")
-                    self.tse_downloader(tic, path / in_dir)
-                    df = pd.read_csv(
-                        path / in_dir / tic_fnp,
-                        index_col="date",
-                        parse_dates=["date"],
-                        header=0,
-                        date_parser=lambda x: pd.to_datetime(
-                            x, format="%Y-%m-%d"),
-                    )
+            df = self.process_single_tic(
+                tic,
+                adjusted,
+                path,
+                in_dir
+            )
             if not df.empty:
-                df = self.process_single_tic(df,
-                                             tic,
-                                             self.baseline_df.set_index('date')
-                                             )
                 li.append(df)
 
         frame = pd.concat(li, axis=0, ignore_index=True)
@@ -162,7 +173,6 @@ class tse_data:
             ticker="^DJI", start=self.start_date, end=self.end_date
         )
         li = []
-        # %%
         logging.info(f"{len(all_files)} csv files found.")
         for filename in all_files:
             logging.info(f"Adding file: {filename}.")
@@ -193,18 +203,13 @@ class tse_data:
             print("Shape of DataFrame: ", df.shape)
             li.append(df)
 
-        # %%
         frame = pd.concat(li, axis=0, ignore_index=True)
 
         frame = frame.sort_values(by=["date", "tic"]).reset_index(drop=True)
 
-        # %%
         out_dir_all.mkdir(parents=True, exist_ok=True)
         fullname = out_dir_all / exp_filename
         frame.to_csv(fullname, index=1, encoding="utf-8")
         frame.head()
 
         return frame
-
-
-# %%

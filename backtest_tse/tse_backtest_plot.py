@@ -70,7 +70,7 @@ def backtest_plot(
 
 def get_baseline(ticker, start, end):
     if ticker == '^TSEI':
-        index_df = tse_data(start_date=start, end_date=end).get_tse_index()
+        index_df = tse_data(start_date=start, end_date=end).baseline_df
     else:
         index_df = YahooDownloader(
             start_date=start, end_date=end, ticker_list=[ticker]
