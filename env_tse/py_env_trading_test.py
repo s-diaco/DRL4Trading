@@ -14,39 +14,38 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Tests for tf_agents.environments.examples.tic_tac_toe_environment."""
+"""Tests for environment."""
 
 import pathlib
 import numpy as np
 import pandas as pd
+import pytest
 
 from tf_agents.environments import utils as env_utils
 from .py_env_trading import TradingPyEnv
-from tf_agents.utils import test_utils
 
 
-class TradingPyEnvTest(test_utils.TestCase):
+@pytest.fixture
+def init_state():
+    path = pathlib.Path.cwd()
+    df = pd.read_csv(path/'env_tse'/'env_sample_data.csv')
+    env = TradingPyEnv(df=df)
+    yield env
 
-    def setUp(self):
-        path = pathlib.Path.cwd()
-        df = pd.read_csv(path/'env_tse'/'env_sample_data.csv')
-        super(TradingPyEnvTest, self).setUp()
-        np.random.seed(0)
-        self.discount = np.asarray(1., dtype=np.float32)
-        self.env = TradingPyEnv(df=df)
-        ts = self.env.reset()
+
+class TestTradingPyEnv():
+
+    def test_env_init_state(self, init_state):
+        env = init_state
+        ts = env.reset()
         init_state = np.array(
-            [self.env.initial_amount]
-            + [0] * len(self.env.assets)
-            + self.env.get_date_vector(self.env.date_index),
+            [env.initial_amount]
+            + [0] * len(env.assets)
+            + env.get_date_vector(env.date_index),
             dtype=np.float32
         )
         np.testing.assert_array_equal(
             init_state, ts.observation)
 
-    def test_validate_specs(self):
-        env_utils.validate_py_environment(self.env, episodes=4)
-
-
-if __name__ == '__main__':
-    test_utils.main()
+    def test_validate_specs(self, init_state):
+        env_utils.validate_py_environment(init_state, episodes=4)
