@@ -76,8 +76,8 @@ class ExternalData:
             client_types_path = self.csv_dir / "client_types"
             client_types_path.mkdir(parents=True, exist_ok=True)
             client_types_file = f'{self.ticker.symbol}.csv'
-            full_path = client_types_path/client_types_file
-            if full_path.is_file():
+            client_types_abs_path = client_types_path/client_types_file
+            if client_types_abs_path.is_file():
                 client_types_df = pd.read_csv(
                     client_types_path/client_types_file,
                     index_col="date",

@@ -124,12 +124,12 @@ class TradeDRLAgent:
         replay_buffer_capacity=100000,  # Per-environment
         # Params for eval
         num_eval_episodes=2,
-        eval_interval=20,
+        eval_interval=5,
         # Params for summaries and logging
-        train_checkpoint_interval=20,
-        policy_checkpoint_interval=20,
-        log_interval=4,
-        summary_interval=4,
+        train_checkpoint_interval=5,
+        policy_checkpoint_interval=5,
+        log_interval=5,
+        summary_interval=5,
         summaries_flush_secs=1,
         use_tf_functions=True,
         num_iterations=10,
@@ -174,7 +174,7 @@ class TradeDRLAgent:
                 train_py_env
                 for _ in range(num_parallel_environments)
             ])
-            train_env = tf_py_environment.TFPyEnvironment(py_env)
+            train_env = tf_py_environment.TFPyEnvironment(batched_py_env)
 
         eval_py_env = py_env()
         eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
@@ -281,7 +281,7 @@ class TradeDRLAgent:
             # TODO what is this step metrics for?
             # while environment_steps_metric.result() < num_environment_steps:
             for _ in range(num_iterations):
-                global_step_val = global_step.numpy()/tf_agent._num_epochs
+                global_step_val = global_step.numpy()/(tf_agent._num_epochs*collect_episodes_per_iteration)
                 if global_step_val % eval_interval == 0:
                     self._eval_model(
                         eval_metrics,
@@ -318,7 +318,7 @@ class TradeDRLAgent:
 
                 if global_step_val % log_interval == 0:
                     logging.info("step = %d, loss = %f",
-                                 global_step_val, total_loss)
+                                 global_step_val, total_loss.loss)
                     steps_per_sec = (global_step.numpy() - timed_at_step) / (
                         collect_time + train_time
                     )

@@ -1,10 +1,6 @@
 # %% [markdown]
 #### todo:
-# - use correct policy batch size for ppo
 # - organize folders created by modules
-# - use original network numbers
-# - write tests
-# - does every train resume from previous chkpt from prev days?
 
 # %% [markdown]
 ## import modules
@@ -69,10 +65,9 @@ TradeDRLAgent().train_PPO(
     root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
     collect_episodes_per_iteration=2,
-    policy_checkpoint_interval=10,
+    policy_checkpoint_interval=5,
     num_iterations=50,
-    num_parallel_environments=N_PARALLEL_CALLS,
-    # use_tf_functions=False
+    num_parallel_environments=N_PARALLEL_CALLS
 )
 
 # %% [markdown]

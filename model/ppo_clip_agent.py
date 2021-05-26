@@ -38,11 +38,11 @@ def create_networks(train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layer
 
 def get_agent(
     env,
-    # TODO test these values from stable baselines with batch size = 1024
+    # TODO test these values from stable baselines with batch size = 1024 and num_steps 256
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-    actor_fc_layers=(1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024),
+    actor_fc_layers=(200, 100),
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
-    value_fc_layers=(1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024),
+    value_fc_layers=(200, 100),
     use_rnns=False,
     lstm_size=(20,),
     # Params for train
