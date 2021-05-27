@@ -114,8 +114,8 @@ class TradeDRLAgent:
     @gin.configurable
     def train_PPO(
         self,
-        root_dir,
         py_env,
+        root_dir = "./trained_models",
         random_seed=None,
         # Params for collect
         # num_environment_steps=25000000,
@@ -160,8 +160,8 @@ class TradeDRLAgent:
         # replacing 'parallel_py_environment.ParallelPyEnvironment'
         # with      'batched_py_environment.BatchedPyEnvironment' 
         # to avoid using multi-process and use multi-thread instead. Although it would be slower
-        if use_parallel_envs:
-            if num_parallel_environments > 1:
+        if num_parallel_environments > 1:
+            if use_parallel_envs:
                 train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
                     [py_env] * num_parallel_environments))
             else:
@@ -273,10 +273,6 @@ class TradeDRLAgent:
             collect_time = 0
             train_time = 0
             timed_at_step = global_step.numpy()
-            
-            # TODO or just: collect_driver.run() (without parameters)
-            time_step = None
-            policy_state = collect_policy.get_initial_state(train_env.batch_size)
 
             # TODO what is this step metrics for?
             # while environment_steps_metric.result() < num_environment_steps:
@@ -295,10 +291,7 @@ class TradeDRLAgent:
 
                 logging.info(f'start collecting data to replay buffer')
                 start_time = time.time()
-                time_step, policy_state = collect_driver.run(
-                    time_step=time_step,
-                    policy_state=policy_state
-                )
+                collect_driver.run()
                 collect_time += time.time() - start_time
                 logging.info(f'collect ended')
 

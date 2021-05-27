@@ -62,11 +62,10 @@ if N_PARALLEL_CALLS > 1:
 
 # %%
 TradeDRLAgent().train_PPO(
-    root_dir="./" + config.TRAINED_MODEL_DIR,
     py_env=TrainEvalPyEnv,
     collect_episodes_per_iteration=2,
     policy_checkpoint_interval=5,
-    num_iterations=50,
+    num_iterations=5,
     num_parallel_environments=N_PARALLEL_CALLS
 )
 
