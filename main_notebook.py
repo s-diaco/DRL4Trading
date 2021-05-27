@@ -1,116 +1,91 @@
 # %% [markdown]
-#### todo:
-# - devide main notebook to multiple smaller files
-# %%
-import os
-from pprint import pprint
-from finrl.model.models import DRLAgent
-from env_tse.env_stocktrading_tse_stoploss import StockTradingEnvTSEStopLoss
-from config import config
-import datetime
-import numpy as np
-import pandas as pd
-from IPython import get_ipython
-import backtest_tse.backtesting_tse as backtest
+# todo:
+# - organize folders created by modules
+
+# %% [markdown]
+## import modules
 import logging
+import tensorflow as tf
+from IPython import get_ipython
+
+import tf_agents.system
+import backtest_tse.backtesting_tse as backtest
+from config import config
+from env_tse.py_env_trading import TradingPyEnv
+from model.models import TradeDRLAgent
 from preprocess_tse_data import preprocess_data
+
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-train, trade = preprocess_data()
+N_PARALLEL_CALLS = 3
+NUM_EPISODES_PER_ITER = 2
+POLIICY_CHKPT_INTERVAL = 5
+NUM_ITERS = 5
 
-# %%
+# %% [markdown]
+# Preprocess data
+df_train, df_trade = preprocess_data()
+
+# %% [markdown]
+# Create the envoriments
 information_cols = ["daily_variance", "change", "log_volume"]
 
-e_train_gym = StockTradingEnvTSEStopLoss(
-    df=train,
-    initial_amount=1e8,
-    hmax=1e7,
-    cache_indicator_data=False,
-    daily_information_cols=information_cols,
-    print_verbosity=500,
-    buy_cost_pct=3.7e-3,
-    sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0,
-    patient=True
-)
+logging.info(f'TensorFlow version: {tf.version.VERSION}')
+logging.info(
+    f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
-e_trade_gym = StockTradingEnvTSEStopLoss(
-    df=trade,
-    initial_amount=1e8,
-    hmax=1e7,
-    cache_indicator_data=False,
-    daily_information_cols=information_cols,
-    print_verbosity=500,
-    discrete_actions=True,
-    shares_increment=10,
-    buy_cost_pct=3.7e-3,
-    sell_cost_pct=8.8e-3,
-    cash_penalty_proportion=0,
-    patient=True,
-    random_start=False,
-)
 
-# %% Environment for Training
-# single processing
-env_train, _ = e_train_gym.get_sb_env()
+class TrainEvalPyEnv(TradingPyEnv):
+    def __init__(self):
+        super().__init__(
+            df=df_train,
+            daily_information_cols=information_cols,
+            patient=True,
+            random_start=False,
+            cache_indicator_data=False  # todo: delete if needed,
+        )
 
-# this is our observation environment. It allows full diagnostics
-env_trade, _ = e_trade_gym.get_sb_env()
 
-# %% 6. Implement DRL Algorithms
-agent = DRLAgent(env=env_train)
+class TestPyEnv(TradingPyEnv):
+    def __init__(self):
+        super().__init__(
+            df=df_trade,
+            daily_information_cols=information_cols,
+            cache_indicator_data=False,
+            discrete_actions=True,
+            shares_increment=10,
+            patient=True,
+            random_start=False,
+        )
 
-# %% Model PPO
-# from torch.nn import Softsign, ReLU
-ppo_params = {
-    "n_steps": 256,
-    "ent_coef": 0.0,
-    "learning_rate": 0.000005,
-    "batch_size": 1024,
-    "gamma": 0.99,
-}
 
-policy_kwargs = {
-    #     "activation_fn": ReLU,
-    "net_arch": [1024 for _ in range(10)],
-    #     "squash_output": True
-}
-
-model = agent.get_model(
-    "ppo", model_kwargs=ppo_params, policy_kwargs=policy_kwargs, verbose=0
-)
+# %% [markdown]
+# Train
+if N_PARALLEL_CALLS > 1:
+    tf_agents.system.multiprocessing.enable_interactive_mode()
 
 # %%
-# model = model.load("trained_models/different4_7_2000.model", env = env_train)
-
-# %%
-model.learn(
-    total_timesteps=10000,
-    eval_env=env_trade,
-    eval_freq=500,
-    log_interval=1,
-    tb_log_name="env_tse",
-    n_eval_episodes=1,
+TradeDRLAgent().train_PPO(
+    py_env=TrainEvalPyEnv,
+    collect_episodes_per_iteration=NUM_EPISODES_PER_ITER,
+    policy_checkpoint_interval=POLIICY_CHKPT_INTERVAL,
+    num_iterations=NUM_ITERS,
+    num_parallel_environments=N_PARALLEL_CALLS
 )
 
-# %%
-# model.save("trained_models/tse4_10_1000.model")
+# %% [markdown]
+# Predict
+df_account_value, df_actions = TradeDRLAgent().predict_trades(py_test_env=TestPyEnv)
 
-# %% Trade
-logging.info(f"Trade dates: {len(e_trade_gym.dates)}")
-
-# %%
-df_account_value, df_actions = DRLAgent.DRL_prediction(
-    model=model, environment=e_trade_gym
-)
-
-# %%
+# %% [markdown]
+# Trade info
 logging.info(f"Model actions:\n{df_actions.head()}")
+logging.info(
+    f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
 
-# %%
-logging.info(f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
-
-# %% 7. Backtest
-backtest.backtest_tse_trades(df_account_value, "^TSEI", config.START_TRADE_DATE, config.END_DATE)
+# %% [markdown]
+# Backtest stats & plots
+backtest.backtest_tse_trades(
+    df_account_value, "^TSEI", config.START_TRADE_DATE, config.END_DATE)
 # %%
