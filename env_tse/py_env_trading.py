@@ -173,7 +173,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
             date = self.dates[date]
             if cols is None:
                 cols = self.daily_information_cols
-            trunc_df = self.df.loc[date]
+            trunc_df = self.df.loc[[date]]
             v = []
             for a in self.assets:
                 subset = trunc_df[trunc_df[self.stock_col] == a]

@@ -17,6 +17,7 @@
 """Tests for environment."""
 
 import pathlib
+from random import random
 
 import numpy as np
 import pandas as pd
@@ -91,7 +92,7 @@ class TestTradingPyEnv():
         for i in range(2):
 
             actions = np.zeros(len(ticker_list))
-            _, _, _, next_state= env.step(actions)
+            _, _, _, next_state = env.step(actions)
             cash = next_state[0]
             holdings = next_state[1 : 1 + len(ticker_list)]
             asset_value = env.account_information["asset_value"][-1]
@@ -101,3 +102,95 @@ class TestTradingPyEnv():
             np.testing.assert_equal(0.0, asset_value)
             np.testing.assert_equal(init_amt, total_assets)
             np.testing.assert_equal(i + 1, env.current_step)
+            
+
+    def test_shares_increment(self, get_env_df):
+        """
+        Prove that we can only buy/sell multiplies of shares
+        based on shares_increment parameter
+        """
+
+        test_tic = "بترانس"
+        stock_first_close = get_env_df[get_env_df['tic']==test_tic].head(1)['close'].values[0]
+        init_amt = 1e6
+        hmax = stock_first_close * 100
+        shares_increment = 10
+        env = TradingPyEnv(discrete_actions = True,
+            df=get_env_df, initial_amount=init_amt, hmax=hmax,
+            cache_indicator_data=False,shares_increment=shares_increment,
+            random_start=False
+        )
+        _ = env.reset()
+
+        actions = np.array([0.29,0.0,0.0,0.0,0.0])
+        _, _, _, next_state = env.step(actions)
+        ticker_list = get_env_df["tic"].unique()
+        holdings = next_state[1 : 1 + len(ticker_list)]
+        np.testing.assert_equal(holdings[0], 20.0)
+        np.testing.assert_equal(holdings[1], 0.0)
+
+        hmax_mc = get_env_df[get_env_df['tic']==test_tic].head(2).iloc[-1]['close'] / stock_first_close
+        actions = np.array([-0.12 * hmax_mc,0.0,0.0,0.0,0.0])
+        _, _, _, next_state = env.step(actions)
+        holdings = next_state[1 : 1 + len(ticker_list)]
+        np.testing.assert_equal(holdings[0], 10.0)
+        np.testing.assert_equal(holdings[1], 0.0)
+
+    def test_patient(self, get_env_df):
+        """
+        Prove that we just not buying any new assets 
+        if running out of cash 
+        and the cycle is not ended
+        """
+
+        test_tic = "بترانس"
+        stock_first_close = get_env_df[get_env_df['tic']==test_tic].head(1)['close'].values[0]
+        init_amt = stock_first_close
+        hmax = stock_first_close * 100
+        env = TradingPyEnv(
+            df=get_env_df, initial_amount=init_amt, hmax=hmax,
+            cache_indicator_data=False,patient=True,
+            random_start=False, 
+        )
+        _ = env.reset()
+        ticker_list = get_env_df["tic"].unique()
+
+        actions = np.array([1.0,1.0,1.0,1.0,1.0])
+        is_done, _, _, next_state = env.step(actions)
+        holdings = next_state[1 : 1 + len(ticker_list)]
+        np.testing.assert_equal(1, is_done)
+        np.testing.assert_equal(0.0, np.sum(holdings))
+
+    def test_cost_penalties(self):
+        # TODO: Requesting contributions!
+        pass
+
+    def test_purchases(self):
+        # TODO: Requesting contributions!
+        pass
+
+    def test_gains(self):
+        # TODO: Requesting contributions!
+        pass
+
+    def test_validate_caching(self, get_env_df):
+        """
+        prove that results with or without caching
+        don't change anything
+        """
+        
+        env_uncached = TradingPyEnv(
+            df=get_env_df, cache_indicator_data=False, random_start=False
+        )
+        env_cached = TradingPyEnv(
+            df=get_env_df, cache_indicator_data=True, random_start=False
+        )
+        _ = env_uncached.reset()
+        _ = env_cached.reset()
+        for _ in range(10):
+            actions = np.random.uniform(low=-1, high=1, size=5)
+            _, un_reward, _, un_state = env_uncached.step(actions)
+            _, ca_reward, _, ca_state = env_cached.step(actions)
+
+            np.testing.assert_equal(un_state, ca_state)
+            np.testing.assert_equal(un_reward, ca_reward)
