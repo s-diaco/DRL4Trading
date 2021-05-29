@@ -39,10 +39,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     processed = fe.preprocess_data(df)
 
-    processed = df
-    processed['log_volume'] = np.log(processed.volume*processed.close)
+    # processed['log_volume'] = np.log(processed.volume*processed.close)
     processed['change'] = (processed.close-processed.open)/processed.close
     processed['daily_variance'] = (processed.high-processed.low)/processed.close
+    processed['volume_ma_ratio'] = processed.volume_10_sma/processed.volume_30_sma
     logging.info(f'Preprocessed data: \n {processed.head()}')
     
     # 5.Design Environment
@@ -50,5 +50,6 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     trade = data_split(processed, config.START_TRADE_DATE, config.END_DATE)
     logging.info(f'Training sample size: {len(train)}')
     logging.info(f'Trading sample size: {len(trade)}')
+    logging.info(f'Training column names: {train.columns}')
 
     return train, trade

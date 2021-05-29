@@ -17,8 +17,6 @@
 """Tests for environment."""
 
 import pathlib
-from random import random
-
 import numpy as np
 import pandas as pd
 import pytest
