@@ -42,8 +42,7 @@ class TrainEvalPyEnv(TradingPyEnv):
             df=df_train,
             daily_information_cols=information_cols,
             patient=True,
-            random_start=False,
-            cache_indicator_data=False  # todo: delete if needed,
+            random_start=False
         )
 
 
@@ -52,7 +51,6 @@ class TestPyEnv(TradingPyEnv):
         super().__init__(
             df=df_trade,
             daily_information_cols=information_cols,
-            cache_indicator_data=False,
             discrete_actions=True,
             shares_increment=10,
             patient=True,

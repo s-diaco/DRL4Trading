@@ -3,6 +3,8 @@ test 'fetch_external_data.py'
 """
 import pytest
 import pathlib
+import pandas as pd
+import numpy as np
 from . import fetch_external_data
 
 
@@ -27,6 +29,7 @@ class TestExternalData:
         test fetch_data with and without client types
         """
         include_df_false = ext_data.fetch_data(include_client_types=False)
+        assert isinstance(include_df_false, pd.DataFrame), "fetched data is not a pandas DataFrame"
         assert len(include_df_false.columns) == 14, "price table has missing columns"
         include_df_true = ext_data.fetch_data(include_client_types=True)
         assert len(include_df_true.columns) == 32, "volume table has missing columns"

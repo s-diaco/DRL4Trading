@@ -9,7 +9,7 @@ import backtest_tse.tse_backtest_plot as bt_plt
 def backtest_tse_trades(df_account_value, baseline, start_date, end_date):
     # ## 7.1 Backtest Stats
     logging.info("==============Backtest Results===========")
-    perf_stats_all = backtest_stats(
+    _ = backtest_stats(
         account_value=df_account_value, value_col_name="total_assets"
     )
 
