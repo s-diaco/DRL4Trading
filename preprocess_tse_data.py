@@ -25,10 +25,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info(f'Start date: {config.START_DATE}')
     # from config.py end_date is a string
     logging.info(f'End date: {config.END_DATE}')
-    logging.info(f'Tickers: {config.TSE_TICKER_5}')
+    logging.info(f'Tickers: {config.TSE_TICKER_30}')
     df = tse_data(start_date=config.START_DATE,
                 end_date=config.END_DATE,
-                ticker_list=config.TSE_TICKER_5).fetch_data()
+                ticker_list=config.TSE_TICKER_30).fetch_data()
 
     # 4.Preprocess Data
     fe = FeatureEngineer(
