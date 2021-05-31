@@ -1,6 +1,7 @@
 # %% [markdown]
 # todo:
-# - organize folders created by modules
+# - auto detect if file needs to redownload
+# - stet source dir to python path so i can access parent dirs
 
 # %% [markdown]
 ## import modules
@@ -29,7 +30,7 @@ df_train, df_trade = preprocess_data()
 
 # %% [markdown]
 # Create the envoriments
-information_cols = ["daily_variance", "change", "log_volume"]
+information_cols = config.DATA_COLUMNS
 
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(

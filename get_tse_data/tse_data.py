@@ -23,17 +23,20 @@ class tse_data:
     Methods
     -------
     fetch_data()
-        Fetches data from yahoo API
+        Fetches data from online or local source
 
     """
 
-    def __init__(self, start_date: str, end_date: str, ticker_list: list = []):
-
+    def __init__(self, start_date: str, end_date: str, ticker_list: list = [], custom_indicator_list: list = []):
+        """
+        get price data and add user data to it
+        """
         self.start_date = start_date
         self.end_date = end_date
         self.ticker_list = ticker_list
         self.index_df = self._get_tse_index()
         self.baseline_df = self.index_df.reset_index()
+        self.custom_indicator_list = custom_indicator_list
 
     def _get_tse_index(self) -> pd.DataFrame:
         """

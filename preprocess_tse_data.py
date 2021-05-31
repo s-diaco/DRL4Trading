@@ -32,7 +32,7 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     # 4.Preprocess Data
     fe = FeatureEngineer(
-        use_technical_indicator=False,
+        use_technical_indicator=True,
         tech_indicator_list=config.TECHNICAL_INDICATORS_LIST,
         use_turbulence=False,
         user_defined_feature=False)
