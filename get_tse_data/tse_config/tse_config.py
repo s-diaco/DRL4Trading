@@ -28,13 +28,6 @@ TENSORBOARD_LOG_DIR = f"tensorboard_log"
 RESULTS_DIR = f"results"
 # os.makedirs(TRAINED_MODEL_DIR)
 
-
-## time_fmt = '%Y-%m-%d'
-START_DATE = "2000-01-03"
-END_DATE = "2021-01-07"
-
-START_TRADE_DATE = "2019-01-01"
-
 IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'
 EXP_FILE_NAME = 'combined_csv.csv'

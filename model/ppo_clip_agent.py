@@ -7,7 +7,7 @@ from tf_agents.networks import (actor_distribution_network,
 
 def create_networks(train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layers, lstm_size
                     ):
-    # TODO replace with one "fc_layer_params" in the last version
+    #TODO replace with one "fc_layer_params" in the last version
     if use_rnns:
         actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
             train_eval_tf_env.observation_spec(),
@@ -38,7 +38,7 @@ def create_networks(train_eval_tf_env, use_rnns, actor_fc_layers, value_fc_layer
 
 def get_agent(
     env,
-    # TODO test these values from stable baselines with batch size = 1024 and num_steps 256
+    #TODO test these values from stable baselines with batch size = 1024 and num_steps 256
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
     actor_fc_layers=(200, 100),
     # should be (1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024)
@@ -46,9 +46,7 @@ def get_agent(
     use_rnns=False,
     lstm_size=(20,),
     # Params for train
-    num_epochs=10,
     learning_rate=5e-06,
-    discount_factor=0.99
 ):
     """
     An agent for PPO.
@@ -70,8 +68,6 @@ def get_agent(
         actor_net=actor_net,
         value_net=value_net,
         train_step_counter=train_step_counter,
-        discount_factor=discount_factor,
-        num_epochs=num_epochs,
         # gradient_clipping=0.5,
         # entropy_regularization=1e-2,
         # importance_ratio_clipping=0.2,

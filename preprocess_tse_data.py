@@ -25,10 +25,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info(f'Start date: {config.START_DATE}')
     # from config.py end_date is a string
     logging.info(f'End date: {config.END_DATE}')
-    logging.info(f'Tickers: {config.TSE_TICKER_30}')
+    logging.info(f'Tickers: {config.TSE_TICKER_NAZANIN}')
     df = tse_data(start_date=config.START_DATE,
                 end_date=config.END_DATE,
-                ticker_list=config.TSE_TICKER_30).fetch_data()
+                ticker_list=config.TSE_TICKER_NAZANIN).fetch_data()
 
     # 4.Preprocess Data
     fe = FeatureEngineer(
@@ -42,8 +42,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     # processed['log_volume'] = np.log(processed.volume*processed.close)
     processed['change'] = (processed.close-processed.open)/processed.close
     processed['daily_variance'] = (processed.high-processed.low)/processed.close
-    processed['volume_ma_ratio'] = processed.volume_10_sma/processed.volume_30_sma
-    logging.info(f'Preprocessed data: \n {processed.head()}')
+    processed['volume_ma_ratio'] = processed.volume_5_sma/processed.volume_30_sma
+    processed['ma_ratio'] = processed.close_5_sma/processed.close_30_sma
+    processed['rsi_20_normalized'] = processed.rsi_20/100
+    logging.info(f'Preprocessed data (tail): \n {processed.tail()}')
     
     # 5.Design Environment
     train = data_split(processed, config.START_DATE, config.START_TRADE_DATE)

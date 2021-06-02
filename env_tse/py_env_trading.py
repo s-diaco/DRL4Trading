@@ -71,6 +71,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         random_start=True,
         patient=False,
         currency="$",
+        no_decimal_action=False
     ):
         super().__init__()
         self.df = df
@@ -89,6 +90,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         self.buy_cost_pct = buy_cost_pct
         self.sell_cost_pct = sell_cost_pct
         self.stoploss_penalty = stoploss_penalty
+        self.no_decimal_action = no_decimal_action
         self.min_profit_penalty = 1 + \
             profit_loss_ratio * (1 - self.stoploss_penalty)
         self.turbulence_threshold = turbulence_threshold
@@ -271,6 +273,10 @@ class TradingPyEnv(py_environment.PyEnvironment):
         # (refer to tf_agent's example tic_tac_toe_environment.py).
         if self._current_time_step.is_last():
             return self._reset()
+
+        if self.no_decimal_action:
+            actions = np.where(actions>0,1,actions)
+            actions = np.where(actions<0,-1,actions)
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time

@@ -22,7 +22,7 @@ logging.basicConfig(format="%(message)s", level=logging.INFO)
 N_PARALLEL_CALLS = 3
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
-NUM_ITERS = 50
+NUM_ITERS = 4
 
 # %% [markdown]
 # Preprocess data
@@ -44,7 +44,8 @@ class TrainEvalPyEnv(TradingPyEnv):
             daily_information_cols=information_cols,
             patient=True,
             random_start=False,
-            cash_penalty_proportion=0
+            cash_penalty_proportion=0,
+            no_decimal_action=True
         )
 
 
@@ -53,11 +54,10 @@ class TestPyEnv(TradingPyEnv):
         super().__init__(
             df=df_trade,
             daily_information_cols=information_cols,
-            discrete_actions=True,
-            shares_increment=10,
             patient=True,
             random_start=False,
-            cash_penalty_proportion=0
+            cash_penalty_proportion=0,
+            no_decimal_action=True
         )
 
 
