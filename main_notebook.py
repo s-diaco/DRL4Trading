@@ -45,7 +45,6 @@ class TrainEvalPyEnv(TradingPyEnv):
             patient=True,
             random_start=False,
             cash_penalty_proportion=0,
-            no_decimal_action=True
         )
 
 
@@ -57,7 +56,6 @@ class TestPyEnv(TradingPyEnv):
             patient=True,
             random_start=False,
             cash_penalty_proportion=0,
-            no_decimal_action=True
         )
 
 
