@@ -71,6 +71,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         random_start=True,
         patient=False,
         currency="$",
+        single_stock_action=False
     ):
         super().__init__()
         self.df = df
@@ -97,9 +98,15 @@ class TradingPyEnv(py_environment.PyEnvironment):
             1 + len(self.assets) + len(self.assets) *
             len(self.daily_information_cols)
         )
-
-        self._action_spec = array_spec.BoundedArraySpec(shape=(
-            len(self.assets),), dtype=np.float32, minimum=-1, maximum=1, name='action')
+        self._single_stock_action = single_stock_action
+        if self._single_stock_action:
+            self._action_spec = array_spec.BoundedArraySpec(
+                shape=(), dtype=np.int32,
+                minimum=-1*len(self.assets), maximum=len(self.assets),
+                name='action')
+        else:
+            self._action_spec = array_spec.BoundedArraySpec(shape=(
+                len(self.assets),), dtype=np.float32, minimum=-1, maximum=1, name='action')
         self._observation_spec = array_spec.ArraySpec(
             shape=(self.state_space,), dtype=np.float32, name='observation')
 
@@ -272,6 +279,14 @@ class TradingPyEnv(py_environment.PyEnvironment):
         if self._current_time_step.is_last():
             return self._reset()
 
+        if self._single_stock_action:
+            arr_actions = np.zeros(shape=(len(self.assets),), dtype=np.float32)
+            if actions < 0:
+                arr_actions[-1*actions-1] = 1
+            else:
+                arr_actions[actions-1] = 1
+
+        """ recives an action array and does possible trades """
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time

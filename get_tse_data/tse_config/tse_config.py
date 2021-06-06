@@ -1,11 +1,3 @@
-import pathlib
-
-# import finrl
-
-import pandas as pd
-import datetime
-import os
-
 # pd.options.display.max_rows = 10
 # pd.options.display.max_columns = 10
 
@@ -28,7 +20,7 @@ TENSORBOARD_LOG_DIR = f"tensorboard_log"
 RESULTS_DIR = f"results"
 # os.makedirs(TRAINED_MODEL_DIR)
 
-IN_DIR = 'tickers_data'
-CSV_DIR = 'csv_data'
-EXP_FILE_NAME = 'combined_csv.csv'
-TSEI = 'شاخص كل6.csv'
+IN_DIR = "tickers_data"
+CSV_DIR = "csv_data"
+EXP_FILE_NAME = "combined_csv.csv"
+TSEI = "شاخص كل6.csv"

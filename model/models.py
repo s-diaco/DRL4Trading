@@ -391,3 +391,21 @@ class TradeDRLAgent:
             # transitions.append([time_step, policy_step])
         # return account_memory[0], actions_memory[0]
         return account_memory, actions_memory
+
+    def predict_single_day(self, date, py_test_env):
+        """make a prediction for specified date"""
+
+        #TODO under construction! do not use this one.
+
+        # load envoirement
+        pred_py_env = py_test_env()
+        pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
+
+        # load policy
+        policy_path = os.path.join(
+            "trained_models/policy_saved_model/complete_policy")
+        policy = tf.saved_model.load(policy_path)
+        time_step = pred_tf_env.reset()
+        policy_step = policy.action(time_step)
+        return policy_step
+
