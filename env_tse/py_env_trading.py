@@ -102,7 +102,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         if self._single_stock_action:
             self._action_spec = array_spec.BoundedArraySpec(
                 shape=(), dtype=np.int32,
-                minimum=-1*len(self.assets), maximum=len(self.assets),
+                minimum=0, maximum=2*len(self.assets),
                 name='action')
         else:
             self._action_spec = array_spec.BoundedArraySpec(shape=(
@@ -281,12 +281,13 @@ class TradingPyEnv(py_environment.PyEnvironment):
 
         if self._single_stock_action:
             arr_actions = np.zeros(shape=(len(self.assets),), dtype=np.float32)
-            if actions < 0:
-                arr_actions[-1*actions-1] = 1
-            else:
-                arr_actions[actions-1] = 1
+            if actions > 0:
+                if actions < len(self.assets)+1:
+                    arr_actions[actions-1] = -1.0
+                else:
+                    arr_actions[actions-len(self.assets)-1] = 1.0
+            actions = arr_actions
 
-        """ recives an action array and does possible trades """
         # let's just log what we're doing in terms of max actions at each step.
         self.sum_trades += np.sum(np.abs(actions))
         # print header only first time
