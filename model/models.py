@@ -392,10 +392,14 @@ class TradeDRLAgent:
         # return account_memory[0], actions_memory[0]
         return account_memory, actions_memory
 
-    def predict_single_day(self, date, py_test_env):
+    def predict_single_day(self, date):
         """make a prediction for specified date"""
 
         #TODO under construction! do not use this one.
+
+        # set dates needed to calculate indicators
+        # last_day = date_time.today()
+        # first_day = date_time.today()
 
         # load envoirement
         pred_py_env = py_test_env()

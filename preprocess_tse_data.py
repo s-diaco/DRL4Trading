@@ -1,7 +1,6 @@
 from finrl.preprocessing.data import data_split
 from finrl.preprocessing.preprocessors import FeatureEngineer
 from config import config
-import numpy as np
 import pandas as pd
 from get_tse_data.tse_data import tse_data
 from typing import Tuple
@@ -40,9 +39,12 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     processed = fe.preprocess_data(df)
 
     # processed['log_volume'] = np.log(processed.volume*processed.close)
-    processed['change'] = (processed.close-processed.open)/processed.close
-    processed['daily_variance'] = (processed.high-processed.low)/processed.close
-    processed['volume_ma_ratio'] = processed.volume_5_sma/processed.volume_30_sma
+    processed['change'] = ((processed.close-processed.open)/processed.close)/(
+        (processed.index_close-processed.index_yesterday)/processed.index_close)
+    processed['daily_variance'] = (
+        processed.high-processed.low)/processed.close
+    processed['volume_ma_ratio'] = processed.volume_5_sma / \
+        processed.volume_30_sma
     processed['ma_ratio'] = processed.close_5_sma/processed.close_30_sma
     processed['rsi_20_normalized'] = processed.rsi_20/100
     logging.info(f'Preprocessed data (tail): \n {processed.tail()}')

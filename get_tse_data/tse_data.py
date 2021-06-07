@@ -55,7 +55,7 @@ class tse_data:
             header=0,
             date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
         )
-        cols = ["date", "open", "high", "low", "close", "volume", "tic"]
+        cols = ["date", "open", "high", "low", "close", "volume", "tic", "yesterday"]
         df = df[cols]
         # create day of the week column (monday = 0)
         df["day"] = pd.to_datetime(df["date"]).dt.dayofweek
@@ -90,6 +90,7 @@ class tse_data:
         df = df.reindex(self.index_df.index)
         df["tic"] = ticker
         df['index_close'] = self.index_df['close']
+        df['index_yesterday'] = self.index_df['yesterday']
         df['index_volume'] = self.index_df['volume']
         df["stopped"] = df["open"].isnull()
         df["b_queue"] = (df["high"] == df["low"]) & (

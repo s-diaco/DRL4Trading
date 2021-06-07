@@ -22,10 +22,10 @@ RESULTS_DIR = f"results"
 
 
 ## time_fmt = '%Y-%m-%d'
-START_DATE = "2019-01-01"
+START_DATE = "2017-01-01"
 END_DATE = "2021-06-03"
 
-START_TRADE_DATE = "2021-02-01"
+START_TRADE_DATE = "2021-01-01"
 
 IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'
@@ -34,13 +34,13 @@ EXP_FILE_NAME = 'combined_csv.csv'
 # dataset default columns
 DEFAULT_DATA_COLUMNS = ["date", "tic", "close"]
 
-DATA_COLUMNS = ["change", "volume_ma_ratio", "rsi_20", "stopped",
+DATA_COLUMNS = ["change", "volume_ma_ratio", "rsi_20_normalized", "stopped",
                 "b_queue", "s_queue", "ma_ratio"]
 
 # stockstats technical indicator column names
 # check https://pypi.org/project/stockstats/ for different names
 TECHNICAL_INDICATORS_LIST = ["macd",
-                            "rsi_20", "cci_30", "dx_30",
+                            "rsi_20",
                             "close_30_sma", "close_5_sma",
                             "volume_30_sma", "volume_5_sma"]
 

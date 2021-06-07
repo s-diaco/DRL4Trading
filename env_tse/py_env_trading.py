@@ -60,7 +60,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         hmax=1e7,
         discrete_actions=False,
         shares_increment=1,
-        stoploss_penalty=0.9,
+        stoploss_penalty=0.8,
         profit_loss_ratio=2,
         turbulence_threshold=None,
         print_verbosity=200,
