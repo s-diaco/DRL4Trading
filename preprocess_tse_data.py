@@ -45,6 +45,8 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
         processed.high-processed.low)/processed.close
     processed['volume_ma_ratio'] = processed.volume_5_sma / \
         processed.volume_30_sma
+    processed['count_ma_ratio'] = processed.count_5_sma / \
+        processed.count_30_sma
     processed['ma_ratio'] = processed.close_5_sma/processed.close_30_sma
     processed['rsi_20_normalized'] = processed.rsi_20/100
     logging.info(f'Preprocessed data (tail): \n {processed.tail()}')
