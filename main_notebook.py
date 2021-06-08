@@ -20,11 +20,11 @@ from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-N_PARALLEL_CALLS = 1
+N_PARALLEL_CALLS = 4
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
 NUM_ITERS = 500
-TICKER_LIST = config.TSE_TICKER_NAZANIN
+TICKER_LIST = config.TSE_TICKER_5
 
 # %% [markdown]
 # Preprocess data
@@ -49,7 +49,7 @@ class TrainEvalPyEnv(TradingPyEnv):
             patient=True,
             random_start=False,
             cash_penalty_proportion=0,
-            single_stock_action=True,
+            # single_stock_action=True,
         )
 
 
@@ -61,7 +61,7 @@ class TestPyEnv(TradingPyEnv):
             patient=True,
             random_start=False,
             cash_penalty_proportion=0,
-            single_stock_action=True
+            # single_stock_action=True
         )
 
 
@@ -77,7 +77,6 @@ TradeDRLAgent().train_PPO(
     policy_checkpoint_interval=POLIICY_CHKPT_INTERVAL,
     num_iterations=NUM_ITERS,
     num_parallel_environments=N_PARALLEL_CALLS,
-    use_parallel_envs=True
 )
 
 # %% [markdown]
