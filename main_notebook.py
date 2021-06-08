@@ -24,10 +24,13 @@ N_PARALLEL_CALLS = 4
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
 NUM_ITERS = 500
+TICKER_LIST = config.TSE_TICKER_NAZANIN
 
 # %% [markdown]
 # Preprocess data
-df_train, df_trade = preprocess_data()
+df_train, df_trade = preprocess_data(
+    tic_list=TICKER_LIST
+)
 
 # %% [markdown]
 # Create the envoriments

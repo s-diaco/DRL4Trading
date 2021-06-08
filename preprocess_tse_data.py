@@ -9,7 +9,7 @@ import logging
 # matplotlib.use('Agg')
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
-def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
+def preprocess_data(tic_list = config.TSE_TICKER_5) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     #if not os.path.exists("./" + config.DATA_SAVE_DIR):
     #    os.makedirs("./" + config.DATA_SAVE_DIR)
@@ -24,10 +24,10 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info(f'Start date: {config.START_DATE}')
     # from config.py end_date is a string
     logging.info(f'End date: {config.END_DATE}')
-    logging.info(f'Tickers: {config.TSE_TICKER_5}')
+    logging.info(f'Tickers: {tic_list}')
     df = tse_data(start_date=config.START_DATE,
                 end_date=config.END_DATE,
-                ticker_list=config.TSE_TICKER_5).fetch_data()
+                ticker_list=tic_list).fetch_data()
 
     # 4.Preprocess Data
     fe = FeatureEngineer(
