@@ -2,6 +2,7 @@
 # todo:
 # - auto detect if file needs to redownload
 # - stet source dir to python path so i can access parent dirs
+# - automatic optimization of hyperparameters
 
 # %% [markdown]
 ## import modules
@@ -22,7 +23,7 @@ logging.basicConfig(format="%(message)s", level=logging.INFO)
 N_PARALLEL_CALLS = 4
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
-NUM_ITERS = 5
+NUM_ITERS = 500
 
 # %% [markdown]
 # Preprocess data

@@ -49,6 +49,12 @@ def preprocess_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
         processed.count_30_sma
     processed['ma_ratio'] = processed.close_5_sma/processed.close_30_sma
     processed['rsi_20_normalized'] = processed.rsi_20/100
+    processed['indv_buy_sell_ratio'] = processed.individual_buy_count / \
+        processed.individual_sell_count
+    processed['corp_buy_sell_ratio'] = processed.corporate_buy_count / \
+        processed.corporate_sell_count
+    processed['ind_corp_buy_ratio'] = processed.individual_buy_vol / \
+        processed.corporate_buy_vol
     logging.info(f'Preprocessed data (tail): \n {processed.tail()}')
     
     # 5.Design Environment
