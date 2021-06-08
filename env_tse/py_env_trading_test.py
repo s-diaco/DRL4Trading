@@ -17,9 +17,13 @@
 """Tests for environment."""
 
 import pathlib
+
 import numpy as np
 import pandas as pd
 import pytest
+import tensorflow as tf
+import tf_agents
+from tf_agents.environments import parallel_py_environment, tf_py_environment
 from tf_agents.environments import utils as env_utils
 
 from .py_env_trading import TradingPyEnv
@@ -72,7 +76,12 @@ class TestTradingPyEnv():
     def test_validate_specs(self, init_state):
         """ validate env """
 
-        env_utils.validate_py_environment(init_state, episodes=4)
+        env_utils.validate_py_environment(init_state)
+
+    def test_single_stock_action(self, get_env_df):
+        """ validate env when env_single_stock_action = True """
+        env_single_stock_action = TradingPyEnv(df=get_env_df, single_stock_action=True)
+        env_utils.validate_py_environment(env_single_stock_action)
 
     def test_zero_step(self, get_env_df):
         """
@@ -192,3 +201,11 @@ class TestTradingPyEnv():
 
             np.testing.assert_equal(un_state, ca_state)
             np.testing.assert_equal(un_reward, ca_reward)
+
+    def test_parallel_env(self, get_env_df):
+        """ test parallel envs """
+        tf_agents.system.multiprocessing.enable_interactive_mode()
+        num_parallel_environments = 4
+        parall_py_env = parallel_py_environment.ParallelPyEnvironment(
+            [lambda: TradingPyEnv(df=get_env_df, single_stock_action=True)] * num_parallel_environments)
+        env_utils.validate_py_environment(parall_py_env)

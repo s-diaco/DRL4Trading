@@ -48,7 +48,6 @@ def preprocess_data(tic_list = config.TSE_TICKER_5) -> Tuple[pd.DataFrame, pd.Da
     processed['count_ma_ratio'] = processed.count_5_sma / \
         processed.count_30_sma
     processed['ma_ratio'] = processed.close_5_sma/processed.close_30_sma
-    processed['rsi_20_normalized'] = processed.rsi_20/100
     processed['indv_buy_sell_ratio'] = processed.individual_buy_count / \
         processed.individual_sell_count
     processed['corp_buy_sell_ratio'] = processed.corporate_buy_count / \

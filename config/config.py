@@ -34,9 +34,10 @@ EXP_FILE_NAME = 'combined_csv.csv'
 # dataset default columns
 DEFAULT_DATA_COLUMNS = ["date", "tic", "close"]
 
-DATA_COLUMNS = ["change", "volume_ma_ratio", "rsi_20_normalized", "stopped",
+DATA_COLUMNS = ["change", "volume_ma_ratio", "rsi_20", "stopped",
                 "b_queue", "s_queue", "ma_ratio", "count_ma_ratio",
-                'indv_buy_sell_ratio', 'corp_buy_sell_ratio', 'ind_corp_buy_ratio']
+                'indv_buy_sell_ratio', 'corp_buy_sell_ratio', 'ind_corp_buy_ratio',
+                'macd']
 
 # stockstats technical indicator column names
 # check https://pypi.org/project/stockstats/ for different names

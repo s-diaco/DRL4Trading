@@ -68,11 +68,6 @@ def get_agent(
         actor_net=actor_net,
         value_net=value_net,
         train_step_counter=train_step_counter,
-        # gradient_clipping=0.5,
-        # entropy_regularization=1e-2,
-        # importance_ratio_clipping=0.2,
-        # use_gae=True,
-        # use_td_lambda_return=True,
     )
     tf_agent.initialize()
     return tf_agent

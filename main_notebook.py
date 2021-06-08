@@ -20,7 +20,7 @@ from preprocess_tse_data import preprocess_data
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-N_PARALLEL_CALLS = 4
+N_PARALLEL_CALLS = 1
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
 NUM_ITERS = 500
