@@ -39,6 +39,7 @@ def preprocess_data(tic_list = config.TSE_TICKER_5) -> Tuple[pd.DataFrame, pd.Da
     processed = fe.preprocess_data(df)
 
     # processed['log_volume'] = np.log(processed.volume*processed.close)
+    # c = np.divide(a, b, out=np.zeros_like(a), where=b!=0)
     processed['change'] = ((processed.close-processed.open)/processed.close)/(
         (processed.index_close-processed.index_yesterday)/processed.index_close)
     processed['daily_variance'] = (
