@@ -1,8 +1,9 @@
 # %% [markdown]
 # todo:
 # - auto detect if file needs to redownload
-# - stet source dir to python path so i can access parent dirs
+# - set source dir to python path so i can access parent dirs
 # - automatic optimization of hyperparameters
+# - implement variable episode lengh
 
 # %% [markdown]
 ## import modules
@@ -31,11 +32,12 @@ TICKER_LIST = config.TSE_TICKER_5
 df_train, df_trade = preprocess_data(
     tic_list=TICKER_LIST
 )
+information_cols = config.DATA_COLUMNS
+
+df_train[information_cols].to_csv("temp.csv", index=1, encoding="utf-8")
 
 # %% [markdown]
 # Create the envoriments
-information_cols = config.DATA_COLUMNS
-
 logging.info(f'TensorFlow version: {tf.version.VERSION}')
 logging.info(
     f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
@@ -47,9 +49,8 @@ class TrainEvalPyEnv(TradingPyEnv):
             df=df_train,
             daily_information_cols=information_cols,
             patient=True,
-            random_start=False,
             cash_penalty_proportion=0,
-            # single_stock_action=True,
+            single_stock_action=True,
         )
 
 
@@ -59,9 +60,8 @@ class TestPyEnv(TradingPyEnv):
             df=df_trade,
             daily_information_cols=information_cols,
             patient=True,
-            random_start=False,
             cash_penalty_proportion=0,
-            # single_stock_action=True
+            single_stock_action=True
         )
 
 

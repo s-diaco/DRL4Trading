@@ -311,7 +311,7 @@ class TradeDRLAgent:
 
                 if global_step_val % log_interval == 0:
                     logging.info("step = %d, loss = %f",
-                                 global_step_val, total_loss.loss)
+                                 global_step.numpy(), total_loss.loss)
                     steps_per_sec = (global_step.numpy() - timed_at_step) / (
                         collect_time + train_time
                     )

@@ -285,12 +285,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
                 if actions < len(self.assets)+1:
                     arr_actions[actions-1] = -1.0
                 else:
-                    # TODO delete
-                    if actions > 2*len(self.assets):
-                        logging.info(
-                            f'step {self.date_index - self.starting_point}, assets: {len(self.assets)} action: {actions}')
-                    else:
-                        arr_actions[actions-len(self.assets)-1] = 1.0
+                    arr_actions[actions-len(self.assets)-1] = 1.0
             actions = arr_actions
 
         # let's just log what we're doing in terms of max actions at each step.
