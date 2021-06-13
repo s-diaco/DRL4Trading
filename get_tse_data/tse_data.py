@@ -7,7 +7,7 @@ from finrl.trade.backtest import get_baseline
 from . import fetch_external_data
 
 
-class tse_data:
+class TSEData:
     """Provides methods for retrieving daily stock data from
     TSE (Tehran stock exchange)
 

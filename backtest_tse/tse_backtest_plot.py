@@ -13,7 +13,7 @@ from copy import deepcopy
 from finrl.marketdata.yahoodownloader import YahooDownloader
 from config import config
 
-from get_tse_data.tse_data import tse_data
+from get_tse_data.tse_data import TSEData
 
 
 def get_daily_return(df, value_col_name="account_value"):
@@ -70,7 +70,7 @@ def backtest_plot(
 
 def get_baseline(ticker, start, end):
     if ticker == '^TSEI':
-        index_df = tse_data(start_date=start, end_date=end).baseline_df
+        index_df = TSEData(start_date=start, end_date=end).baseline_df
     else:
         index_df = YahooDownloader(
             start_date=start, end_date=end, ticker_list=[ticker]
