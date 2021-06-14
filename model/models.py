@@ -133,7 +133,7 @@ class TradeDRLAgent:
         summaries_flush_secs=1,
         use_tf_functions=True,
         num_iterations=10,
-        use_parallel_envs=False
+        use_parallel_envs=True
     ):
         """Train and eval for PPO."""
 
@@ -160,9 +160,9 @@ class TradeDRLAgent:
         # to avoid using multi-process and use multi-thread instead. Although it would be slower
         if num_parallel_environments > 1:
             if use_parallel_envs:
-                train_env = tf_py_environment.TFPyEnvironment(parallel_py_environment.ParallelPyEnvironment(
-                    [py_env] * num_parallel_environments))
-
+                train_env = tf_py_environment.TFPyEnvironment(
+                    parallel_py_environment.ParallelPyEnvironment(
+                        [py_env] * num_parallel_environments))
             else:
                 train_py_env = py_env()
                 batched_py_env = batched_py_environment.BatchedPyEnvironment([
@@ -175,8 +175,7 @@ class TradeDRLAgent:
             train_py_env = py_env()
             train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 
-        eval_py_env = py_env()
-        eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+        eval_env = tf_py_environment.TFPyEnvironment(py_env())
 
         tf_agent = get_agent(train_env)
         global_step = tf_agent.train_step_counter

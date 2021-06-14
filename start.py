@@ -16,7 +16,7 @@ from preprocess_tse_data import preprocess_data
 def main(_):
     logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-    TICKER_LIST = config.TSE_TICKER_NAZANIN
+    TICKER_LIST = config.TSE_TICKER_5
     DATA_COLUMNS = config.DATA_COLUMNS
 
     # Preprocess data
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         multiprocessing.handle_main(functools.partial(app.run, main))
 
 
-# todo:
+# TODO:
 # - auto detect if file needs to redownload
 # - set source dir to python path to access parent dirs
 # - automatic optimization of hyperparameters

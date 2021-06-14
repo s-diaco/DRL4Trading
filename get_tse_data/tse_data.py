@@ -134,7 +134,7 @@ class TSEData:
     # todo: delete
     def combine_csv(self) -> pd.DataFrame:
         logging.basicConfig(
-            format="%(asctime)s - %(message)s", level=logging.INFO)
+            format="%(message)s", level=logging.INFO)
         # %% csv files
         in_dir = cfg.IN_DIR
         out_dir = cfg.CSV_DIR

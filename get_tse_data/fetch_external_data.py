@@ -41,7 +41,7 @@ class ExternalData:
             base_path : str
                 Directory to save data file
         """
-        logging.info(f"fetching data for {self.ticker.title}")
+        logging.info(f"fetching data for {self.ticker.symbol}")
         if adjusted_price:
             price_file_name = f'adjusted/{self.ticker.symbol}-ت.csv'
         else:
