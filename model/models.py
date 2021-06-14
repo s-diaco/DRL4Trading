@@ -115,7 +115,7 @@ class TradeDRLAgent:
     def train_PPO(
         self,
         py_env,
-        root_dir = "./trained_models",
+        root_dir="./trained_models",
         random_seed=None,
         # Params for collect
         # num_environment_steps=25000000,
@@ -135,7 +135,7 @@ class TradeDRLAgent:
         num_iterations=10,
         use_parallel_envs=False
     ):
-        """A train and eval for PPO."""
+        """Train and eval for PPO."""
 
         if root_dir is None:
             raise AttributeError("train_eval requires a root_dir.")
@@ -143,13 +143,11 @@ class TradeDRLAgent:
         train_dir, eval_dir, saved_model_dir = self._get_model_dirs(root_dir)
 
         train_summary_writer = tf.summary.create_file_writer(
-            train_dir, flush_millis=summaries_flush_secs * 1000
-        )
+            train_dir, flush_millis=summaries_flush_secs * 1000)
         train_summary_writer.set_as_default()
 
         eval_summary_writer = tf.summary.create_file_writer(
-            eval_dir, flush_millis=summaries_flush_secs * 1000
-        )
+            eval_dir, flush_millis=summaries_flush_secs * 1000)
         eval_metrics = [
             tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
             tf_metrics.AverageEpisodeLengthMetric(
@@ -158,7 +156,7 @@ class TradeDRLAgent:
 
         # Create environment
         # replacing 'parallel_py_environment.ParallelPyEnvironment'
-        # with      'batched_py_environment.BatchedPyEnvironment' 
+        # with      'batched_py_environment.BatchedPyEnvironment'
         # to avoid using multi-process and use multi-thread instead. Although it would be slower
         if num_parallel_environments > 1:
             if use_parallel_envs:
@@ -173,6 +171,7 @@ class TradeDRLAgent:
                 ])
                 train_env = tf_py_environment.TFPyEnvironment(batched_py_env)
         else:
+            # single processing
             train_py_env = py_env()
             train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 
@@ -232,10 +231,10 @@ class TradeDRLAgent:
                 train_env.batch_size
             )
 
-            replay_observer = [stateful_buffer.add_batch]
+            replay_observer = [stateful_buffer.add_batch] + train_metrics
 
-            # TODO it has a bias toward shorter episodes in parallel envs 
-            # (more info: tf_agents/drivers/dynamic_episode_driver.py) 
+            # TODO it has a bias toward shorter episodes in parallel envs
+            # (more info: tf_agents/drivers/dynamic_episode_driver.py)
             # or just use one paralleled or batched env per iteration.
             collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
                 train_env,
@@ -277,7 +276,8 @@ class TradeDRLAgent:
             # TODO what is this step metrics for?
             # while environment_steps_metric.result() < num_environment_steps:
             for _ in range(num_iterations):
-                global_step_val = global_step.numpy()/(tf_agent._num_epochs*collect_episodes_per_iteration)
+                global_step_val = global_step.numpy()/(tf_agent._num_epochs *
+                                                       collect_episodes_per_iteration)
                 if global_step_val % eval_interval == 0:
                     self._eval_model(
                         eval_metrics,
@@ -395,7 +395,7 @@ class TradeDRLAgent:
     def predict_single_day(self, date):
         """make a prediction for specified date"""
 
-        #TODO under construction! do not use this one.
+        # TODO under construction! do not use this one.
 
         # set dates needed to calculate indicators
         # last_day = date_time.today()
@@ -412,4 +412,15 @@ class TradeDRLAgent:
         time_step = pred_tf_env.reset()
         policy_step = policy.action(time_step)
         return policy_step
+
+    def test_trade(self, env):
+
+        df_account_value, df_actions = self.predict_trades(py_test_env=env)
+
+        # Trade info
+        logging.info(f"Model actions:\n{df_actions.head()}")
+        logging.info(
+            f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
+        
+        return df_account_value, df_actions
 

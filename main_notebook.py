@@ -1,11 +1,4 @@
 # %% [markdown]
-# todo:
-# - auto detect if file needs to redownload
-# - set source dir to python path so i can access parent dirs
-# - automatic optimization of hyperparameters
-# - implement variable episode lengh
-
-# %% [markdown]
 ## import modules
 import logging
 import tensorflow as tf
@@ -25,7 +18,7 @@ N_PARALLEL_CALLS = 1
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
 NUM_ITERS = 500
-TICKER_LIST = config.TSE_TICKER_5
+TICKER_LIST = config.TSE_TICKER_NAZANIN
 
 # %% [markdown]
 # Preprocess data
@@ -38,9 +31,9 @@ df_train[information_cols].to_csv("temp.csv", index=1, encoding="utf-8")
 
 # %% [markdown]
 # Create the envoriments
-logging.info(f'TensorFlow version: {tf.version.VERSION}')
+logging.info(f'TensorFlow v{tf.version.VERSION}')
 logging.info(
-    f"List of available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
+    f"Available [GPU] devices:\n{tf.config.list_physical_devices('GPU')}")
 
 
 class TrainEvalPyEnv(TradingPyEnv):
@@ -93,4 +86,4 @@ logging.info(
 # Backtest stats & plots
 backtest.backtest_tse_trades(
     df_account_value, "^TSEI", config.START_TRADE_DATE, config.END_DATE)
-# %%
+

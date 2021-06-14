@@ -1,3 +1,7 @@
+N_PARALLEL_CALLS = 1
+NUM_EPISODES_PER_ITER = 2
+POLIICY_CHKPT_INTERVAL = 5
+NUM_ITERS = 500
 # pd.options.display.max_rows = 10
 # pd.options.display.max_columns = 10
 
@@ -23,9 +27,9 @@ RESULTS_DIR = f"results"
 
 ## time_fmt = '%Y-%m-%d'
 START_DATE = "2016-01-01"
-END_DATE = "2020-01-03"
+END_DATE = "2021-06-02"
 
-START_TRADE_DATE = "2020-06-01"
+START_TRADE_DATE = "2021-02-01"
 
 DURATION_DAYS = 80
 

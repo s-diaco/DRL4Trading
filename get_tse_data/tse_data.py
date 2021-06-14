@@ -113,24 +113,23 @@ class TSEData:
         exp_filename = cfg.EXP_FILE_NAME
         path = pathlib.Path.cwd()
         out_dir_all = path / out_dir
-        li = []
+        combined_frame = pd.DataFrame()
         for tic in self.ticker_list:
-            df = self.process_single_tic(
+            temp_df = self.process_single_tic(
                 tic,
                 include_client_types,
                 adjusted,
                 path,
                 in_dir
             )
-            if not df.empty:
-                li.append(df)
+            if not temp_df.empty:
+                combined_frame = combined_frame.append(temp_df)
 
-        frame = pd.concat(li, axis=0, ignore_index=True)
-        frame = frame.sort_values(by=["date", "tic"]).reset_index(drop=True)
+        combined_frame = combined_frame.sort_values(by=["date", "tic"]).reset_index(drop=True)
         out_dir_all.mkdir(parents=True, exist_ok=True)
-        fullname = out_dir_all / exp_filename
-        frame.to_csv(fullname, index=1, encoding="utf-8")
-        return frame
+        full_name = out_dir_all / exp_filename
+        combined_frame.to_csv(full_name, index=1, encoding="utf-8")
+        return combined_frame
 
     # todo: delete
     def combine_csv(self) -> pd.DataFrame:

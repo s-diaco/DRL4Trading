@@ -326,6 +326,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
             stopped_days = np.array(
                 self.get_date_vector(self.date_index, cols=["stopped"])
             )
+            #if the market has "Daily Trading Limit"
             b_queue_days = np.array(
                 self.get_date_vector(self.date_index, cols=["b_queue"])
             )
