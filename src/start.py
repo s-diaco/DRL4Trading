@@ -78,3 +78,4 @@ if __name__ == '__main__':
 # - implement handling of variable episode lenghs
 # - use other agents
 # - implement single-day predict function
+# - add option to add all csv files from a folder

@@ -22,6 +22,12 @@ DATA_SAVE_DIR = f"datasets"
 TRAINED_MODEL_DIR = f"trained_models"
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 RESULTS_DIR = f"results"
+
+BASELINE_FILE_NAME = "شاخص كل6.csv"
+BASELINE_DIR = "tickers_data/adjusted"
+TICKER_CSV_DIR_LIST = ["tickers_data/adjusted", "tickers_data/client_types"]
+HAS_DAILY_TRADING_LIMIT = True
+USE_BASELINE_DATA = True
 # os.makedirs(TRAINED_MODEL_DIR)
 
 
@@ -42,6 +48,10 @@ DEFAULT_DATA_COLUMNS = ["date", "tic", "close"]
 
 DATA_COLUMNS = ["change", "stopped", "b_queue", "s_queue",
                 "daily_variance", "volume_ma_ratio",
+                "count_ma_ratio", "ma_ratio", "indv_buy_sell_ratio",
+                "corp_buy_sell_ratio", "ind_corp_buy_ratio"]
+
+USER_DEFINED_FEATURES = ["change", "daily_variance", "volume_ma_ratio",
                 "count_ma_ratio", "ma_ratio", "indv_buy_sell_ratio",
                 "corp_buy_sell_ratio", "ind_corp_buy_ratio"]
 

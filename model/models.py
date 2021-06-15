@@ -164,16 +164,13 @@ class TradeDRLAgent:
                     parallel_py_environment.ParallelPyEnvironment(
                         [py_env] * num_parallel_environments))
             else:
-                train_py_env = py_env()
-                batched_py_env = batched_py_environment.BatchedPyEnvironment([
-                    train_py_env
-                    for _ in range(num_parallel_environments)
+                batched_py_env = batched_py_environment.BatchedPyEnvironment(
+                    envs=[py_env() for _ in range(num_parallel_environments)
                 ])
                 train_env = tf_py_environment.TFPyEnvironment(batched_py_env)
         else:
             # single processing
-            train_py_env = py_env()
-            train_env = tf_py_environment.TFPyEnvironment(train_py_env)
+            train_env = tf_py_environment.TFPyEnvironment(py_env())
 
         eval_env = tf_py_environment.TFPyEnvironment(py_env())
 
