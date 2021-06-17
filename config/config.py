@@ -28,9 +28,10 @@ BASELINE_DIR = "tickers_data/adjusted"
 TICKER_CSV_DIR_LIST = ["tickers_data/adjusted", "tickers_data/client_types"]
 HAS_DAILY_TRADING_LIMIT = True
 USE_BASELINE_DATA = True
+TESTING_DATA_FILE = "test.csv"
 # os.makedirs(TRAINED_MODEL_DIR)
 
-
+# Env Parameters
 ## time_fmt = '%Y-%m-%d'
 START_DATE = "2016-01-01"
 END_DATE = "2021-06-02"
@@ -38,6 +39,8 @@ END_DATE = "2021-06-02"
 START_TRADE_DATE = "2021-02-01"
 
 DURATION_DAYS = 80
+DISCRETE_ACTION_SPACE = True
+
 
 IN_DIR = 'tickers_data'
 CSV_DIR = 'csv_data'

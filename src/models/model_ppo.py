@@ -164,6 +164,7 @@ class TradeDRLAgent:
                     parallel_py_environment.ParallelPyEnvironment(
                         [py_env] * num_parallel_environments))
             else:
+                # TODO test if it would work if you define envs seperately
                 batched_py_env = batched_py_environment.BatchedPyEnvironment(
                     envs=[py_env() for _ in range(num_parallel_environments)
                 ])

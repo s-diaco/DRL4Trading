@@ -38,7 +38,7 @@ def main(_):
                 daily_information_cols=information_cols,
                 patient=True,
                 cash_penalty_proportion=0,
-                single_stock_action=True,
+                single_stock_action=config.DISCRETE_ACTION_SPACE,
             )
 
     # Train
@@ -57,7 +57,7 @@ def main(_):
                 daily_information_cols=information_cols,
                 patient=True,
                 cash_penalty_proportion=0,
-                single_stock_action=True
+                single_stock_action=config.DISCRETE_ACTION_SPACE
     )
     df_account_value, _ = model.test_trade(env=test_py_env)
 
@@ -79,3 +79,4 @@ if __name__ == '__main__':
 # - use other agents
 # - implement single-day predict function
 # - add option to add all csv files from a folder
+# - why is average episode lenght not constant?
