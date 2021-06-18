@@ -1,24 +1,15 @@
 """
-Get data from [multiple] dirs
+Get csv data from [multiple] dirs
 """
-import pandas as pd
 import logging
 import pathlib
+
+import pandas as pd
 
 
 class ExternalData:
     """
-    tools to get data related to a specific ticker
-    from third party sources
-
-    Args:
-        ticker: str
-            The name of ticker
-        csv_dirs: Path
-            Directories to save data file
-
-    Returns:
-        A pandas dataframe
+    Tools to get data from third party sources
     """
 
     def __init__(
@@ -26,58 +17,68 @@ class ExternalData:
         first_date: str,
         last_date: str,
     ):
+        """
+        Initialize class variables.
+
+        Parameters:
+                first_date (str): Strat of data (%Y-%m-%d)
+                last_date (str): End of the data (%Y-%m-%d)
+        """
         self.first_day = first_date
         self.last_day = last_date
 
     def fetch_from_csv(
-        self, csv_dirs: list, ticker: str, date_column: str = "date"
-        ) -> pd.DataFrame:
+        self, csv_dirs: list,
+        ticker: str,
+        field_mappins: list = None,
+        date_column: str = "date"
+    ) -> pd.DataFrame:
         """Fetch data from csv files"""
         ret_val = pd.DataFrame()
         for csv_dir in csv_dirs:
             logging.info(f"fetching data for {ticker}")
             price_file_name = f'{ticker}.csv'
-            if (csv_dir/pathlib.Path(price_file_name)).is_file():
-                # price file exist. open and read it
-                price_df = pd.read_csv(
-                    csv_dir/price_file_name,
-                    index_col=date_column,
-                    parse_dates=[date_column],
-                    header=0,
-                    date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
-                )
-                price_df = price_df.loc[self.first_day:self.last_day]
-                if ret_val.empty:
-                    ret_val = price_df
-                else:
-                    ret_val = ret_val.join(price_df)
+            csv_df = self._get_single_csv(
+                file_name=csv_dir/pathlib.Path(price_file_name),
+                date_column=date_column,
+                field_mappins=field_mappins
+            )
+            if ret_val.empty:
+                ret_val = csv_df
             else:
-                # ticker file doesn't exist
-                raise ValueError(
-                    f'There is no file for {ticker} in dir "{csv_dir}"'
-                )
+                ret_val = ret_val.join(csv_df)
         return ret_val
 
+    def _get_single_csv(
+        self,
+        file_name: pathlib.Path,
+        date_column: str,
+        field_mappins: list = None
+    ) -> pd.DataFrame:
+        """Fetch data from a csv file"""
+        csv_df = pd.read_csv(
+            file_name,
+            index_col=date_column,
+            parse_dates=[date_column],
+            header=0,
+            date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+        )
+        csv_df = csv_df.loc[self.first_day:self.last_day]
+        if field_mappins:
+            csv_df = csv_df.rename(columns=field_mappins)
+        return csv_df
+
     def fetch_baseline_from_csv(
-        self, dir: str, file_name: str, date_column: str = "date"
-        ) -> pd.DataFrame:
+        self, file_name: str,
+        date_column: str = "date",
+        field_mappins: list = None
+    ) -> pd.DataFrame:
         """Fetch baseline data from csv file"""
-        bl_file_name = f'{file_name}.csv'
-        logging.info(f"fetching baseline {bl_file_name}.")
-        baseline_full_path = dir/pathlib.Path(bl_file_name)
-        if baseline_full_path.is_file():
-            # baseline file exist. open and read it
-            bl_df = pd.read_csv(
-                baseline_full_path,
-                index_col=date_column,
-                parse_dates=[date_column],
-                header=0,
-                date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
-            )
-            bl_df = bl_df.loc[self.first_day:self.last_day]
-        else:
-            # ticker file doesn't exist
-            raise ValueError(
-                f'There is no "{bl_file_name} in dir "{dir}"'
-            )
+        logging.info(f"fetching baseline {file_name}.")
+        baseline_full_path = pathlib.Path(file_name)
+        bl_df = self._get_single_csv(
+            baseline_full_path,
+            date_column,
+            field_mappins
+        )
         return bl_df

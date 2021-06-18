@@ -154,6 +154,16 @@ DOW_30_TICKER = [
     "DD",
 ]
 
+DOW_30_HISTORY_FIELD_MAPPINGS = {
+    "datadate": "date",
+    "prcod": "open",
+    "prchd": "high",
+    "prcld": "low",
+    "prccd": "close",
+    "cshtrd": "volume",
+    "ajexdi": "adj_factor",
+}
+
 # Nasdaq 100 constituents at 2019/01
 NAS_100_TICKER = [
     "AMGN",

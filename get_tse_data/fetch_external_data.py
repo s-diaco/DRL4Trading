@@ -11,18 +11,13 @@ class ExternalData:
     """
     tools to get data related to a specific ticker
     from third party sources
-
-    Args:
-        ticker: str
-            The symbol of TSE ticker
-        csv_dir: Path
-            Directory to save data file
-
-    Returns:
-        a pandas dataframe with dates, ticker and data
     """
 
-    def __init__(self, ticker: str, first_date: str, last_date: str, csv_dir: pathlib.Path):
+    def __init__(self, 
+                ticker: str, 
+                first_date: str, 
+                last_date: str, 
+                csv_dir: pathlib.Path):
         self.first_day = first_date
         self.last_day = last_date
         self.ticker = tse.Ticker(ticker)
@@ -33,13 +28,12 @@ class ExternalData:
         include_client_types: bool = True,
         adjusted_price: bool = True
     ) -> pd.DataFrame:
-        """Downloads data  from tsetmc.com
+        """
+        Downloads data  from tsetmc.com
+
         Parameters:
-        ----------
-            tic : str
-                The symbol of TSE ticker
-            base_path : str
-                Directory to save data file
+                tic (str): The symbol of TSE ticker
+                base_path (str): Directory to save data file
         """
         logging.info(f"fetching data for {self.ticker.symbol}")
         if adjusted_price:
@@ -59,8 +53,9 @@ class ExternalData:
             # price file not exist
             if adjusted_price:
                 raise ValueError(
-                    f'There is no downloaded file for {self.ticker.symbol} with adjusted prices'
-                    )
+                    f'There is no downloaded file for {self.ticker.symbol} \
+                    with adjusted prices'
+                )
             else:
                 price_df = pd.DataFrame(
                     tse.download(
