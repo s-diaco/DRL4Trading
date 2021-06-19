@@ -8,9 +8,7 @@ import pandas as pd
 
 
 class ExternalData:
-    """
-    Tools to get data from third party sources
-    """
+    """Tools to get data from third party sources"""
 
     def __init__(
         self,
@@ -20,7 +18,7 @@ class ExternalData:
         """
         Initialize class variables.
 
-        Parameters:
+        Args:
                 first_date (str): Strat of data (%Y-%m-%d)
                 last_date (str): End of the data (%Y-%m-%d)
         """
@@ -33,21 +31,37 @@ class ExternalData:
         field_mappins: list = None,
         date_column: str = "date"
     ) -> pd.DataFrame:
-        """Fetch data from csv files"""
-        ret_val = pd.DataFrame()
+        """
+        Fetch data from csv files
+
+        Args:
+                csv_dirs (list): Path to CSV dirs
+                ticker (str): ticker name
+                field_mappins (list): Mappings to rename csv field names
+                date_column (str): Name of the date column in csv file
+
+        Returns:
+                pd.DataFrame: Data from csv file
+        """
+        csv_dfs = []
         for csv_dir in csv_dirs:
             logging.info(f"fetching data for {ticker}")
             price_file_name = f'{ticker}.csv'
-            csv_df = self._get_single_csv(
-                file_name=csv_dir/pathlib.Path(price_file_name),
-                date_column=date_column,
-                field_mappins=field_mappins
-            )
-            if ret_val.empty:
-                ret_val = csv_df
-            else:
-                ret_val = ret_val.join(csv_df)
-        return ret_val
+            try:
+                csv_df = self._get_single_csv(
+                    file_name=csv_dir/pathlib.Path(price_file_name),
+                    date_column=date_column,
+                    field_mappins=field_mappins
+                )
+                if not csv_df.empty:
+                    csv_dfs = csv_dfs.append(csv_df)
+            except Exception as e:
+                logging.error(e)
+        if csv_dfs.empty:
+            raise ValueError(f'No csv data found')
+        else:
+            concat_df = pd.concat(csv_dfs)
+        return concat_df
 
     def _get_single_csv(
         self,
@@ -55,7 +69,17 @@ class ExternalData:
         date_column: str,
         field_mappins: list = None
     ) -> pd.DataFrame:
-        """Fetch data from a csv file"""
+        """
+        Fetch data from a csv file
+
+        Args:
+                file_name (pathlib.Path): Path to CSV file
+                date_column (str): Name of the date column in csv file
+                field_mappins (list): Mappings to rename csv field names
+
+        Returns:
+                pd.DataFrame: Data from csv file
+        """
         csv_df = pd.read_csv(
             file_name,
             index_col=date_column,
@@ -73,7 +97,17 @@ class ExternalData:
         date_column: str = "date",
         field_mappins: list = None
     ) -> pd.DataFrame:
-        """Fetch baseline data from csv file"""
+        """
+        Fetch baseline data from csv file
+
+        Args:
+                file_name (pathlib.Path): Path to baseline file
+                date_column (str): Name of the date column
+                field_mappins (list): Mappings to rename field names
+
+        Returns:
+                pd.DataFrame: Baseline data from csv file
+        """
         logging.info(f"fetching baseline {file_name}.")
         baseline_full_path = pathlib.Path(file_name)
         bl_df = self._get_single_csv(
@@ -81,4 +115,6 @@ class ExternalData:
             date_column,
             field_mappins
         )
+        if bl_df.is_empty:
+            raise ValueError(f'Can not load baseline data from "{file_name}"')
         return bl_df
