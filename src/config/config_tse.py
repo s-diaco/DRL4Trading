@@ -1,7 +1,7 @@
 N_PARALLEL_CALLS = 4
 NUM_EPISODES_PER_ITER = 2
 POLIICY_CHKPT_INTERVAL = 5
-NUM_ITERS = 5
+NUM_ITERS = 500
 # pd.options.display.max_rows = 10
 # pd.options.display.max_columns = 10
 
@@ -23,18 +23,19 @@ TRAINED_MODEL_DIR = f"trained_models"
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 RESULTS_DIR = f"results"
 
-BASELINE_FILE_NAME = "tickers_data/dow30/^DJI.csv"
-TICKER_CSV_DIR_LIST = ["tickers_data/dow30"]
-HAS_DAILY_TRADING_LIMIT = False
+BASELINE_FILE_NAME = "شاخص كل6.csv"
+BASELINE_DIR = "tickers_data/adjusted"
+TICKER_CSV_DIR_LIST = ["tickers_data/adjusted", "tickers_data/client_types"]
+HAS_DAILY_TRADING_LIMIT = True
 USE_BASELINE_DATA = True
 # os.makedirs(TRAINED_MODEL_DIR)
 
 
 ## time_fmt = '%Y-%m-%d'
-START_DATE = "2015-01-01"
-END_DATE = "2020-02-02"
+START_DATE = "2016-01-01"
+END_DATE = "2021-06-02"
 
-START_TRADE_DATE = "2019-01-01"
+START_TRADE_DATE = "2021-02-01"
 
 DURATION_DAYS = 80
 

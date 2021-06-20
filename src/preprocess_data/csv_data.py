@@ -1,3 +1,4 @@
+import config
 import pathlib
 import pandas as pd
 import get_tse_data.tse_config.tse_config as cfg
@@ -25,7 +26,7 @@ class CSVData:
     """
 
     def __init__(
-        self, 
+        self,
         start_date: str, 
         end_date: str,
         ticker_list: list,
@@ -64,7 +65,8 @@ class CSVData:
         return bline_df
 
     def process_single_tic(self,
-                           ticker
+                           ticker,
+                           field_mappings
     ) -> pd.DataFrame:
         """
         process a single ticker and return the dataframe
@@ -75,7 +77,8 @@ class CSVData:
         )
         df = data_fetcher.fetch_from_csv(
             csv_dirs=self._csv_dirs,
-            ticker=ticker
+            ticker=ticker,
+            field_mappins=field_mappings
         )
 
         df = df.reindex(self.baseline_df.index)
@@ -87,7 +90,8 @@ class CSVData:
         if self.has_daily_trading_limit:
             if not "yesterday" in df:
                 raise ValueError(
-                    f'Market has daily trading limit; "yesterday" column is required.'
+                    f'Market has daily trading limit; \
+                        "yesterday" column is required.'
                 )
             df["b_queue"] = (df["high"] == df["low"]) & (
                 df["low"] > df["yesterday"])
@@ -100,7 +104,7 @@ class CSVData:
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek + 2) % 7
         return df
 
-    def fetch_data(self) -> pd.DataFrame:
+    def fetch_data(self, field_mappings) -> pd.DataFrame:
         """
         get ticker data
         """
@@ -111,7 +115,8 @@ class CSVData:
         combined_frame = pd.DataFrame()
         for tic in self.ticker_list:
             temp_df = self.process_single_tic(
-                ticker=tic
+                ticker=tic,
+                field_mappings=field_mappings
             )
             if not temp_df.empty:
                 combined_frame = combined_frame.append(temp_df)

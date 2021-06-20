@@ -30,14 +30,14 @@ def add_technical_indicator(
     """
     df = data.copy()
     stock = Sdf.retype(df.copy())
-    unique_ticker = stock.tic.unique()
+    unique_tickers = stock.tic.unique()
 
     for indicator in tech_indicator_list:
         indicator_df = pd.DataFrame()
-        for i in range(len(unique_ticker)):
+        for unique_ticker in unique_tickers:
             try:
                 temp_indicator = stock[stock.tic ==
-                                       unique_ticker[i]][indicator]
+                                       unique_ticker][indicator]
                 temp_indicator = pd.DataFrame(temp_indicator)
                 indicator_df = indicator_df.append(
                     temp_indicator, ignore_index=True
@@ -93,7 +93,10 @@ def add_user_defined_features(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def preprocess_data(tic_list, start_date, end_date) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def preprocess_data(tic_list, 
+                    start_date, end_date,
+                    field_mappings) -> pd.DataFrame:
+    """preprocess data before using"""
 
     # if not os.path.exists("./" + config.DATA_SAVE_DIR):
     #    os.makedirs("./" + config.DATA_SAVE_DIR)
@@ -118,7 +121,7 @@ def preprocess_data(tic_list, start_date, end_date) -> Tuple[pd.DataFrame, pd.Da
         csv_dirs=config.TICKER_CSV_DIR_LIST,
         has_daily_trading_limit=config.HAS_DAILY_TRADING_LIMIT,
         use_baseline_data=config.USE_BASELINE_DATA)
-    raw_df = data_loader.fetch_data()
+    raw_df = data_loader.fetch_data(field_mappings=field_mappings)
 
     # Preprocess Data
     processed_data = add_technical_indicator(

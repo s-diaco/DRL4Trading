@@ -19,5 +19,7 @@ halo
 # testing requirements
 pytest
 
+setuptools
+
 
 

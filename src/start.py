@@ -10,18 +10,19 @@ import backtest_tse.backtesting_tse as backtest
 from config import config
 from env_tse.py_env_trading import TradingPyEnv
 from model.models import TradeDRLAgent
-from preprocess_tse_data import preprocess_data
+from preprocess_data import preprocess_data
 
 
 def main(_):
     logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-    TICKER_LIST = config.TSE_TICKER_5
+    TICKER_LIST = config.DOW_30_TICKER
     DATA_COLUMNS = config.DATA_COLUMNS
 
     # Preprocess data
-    df_train, df_trade = preprocess_data(
-        tic_list=TICKER_LIST
+    df_train = preprocess_data.preprocess_data(
+        tic_list=TICKER_LIST,
+        field_mappings=config.DOW_30_HISTORY_FIELD_MAPPINGS
     )
     information_cols = DATA_COLUMNS
     # df_train[information_cols].to_csv("temp.csv", index=1, encoding="utf-8")
