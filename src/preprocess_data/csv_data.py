@@ -1,4 +1,3 @@
-import config
 import pathlib
 import pandas as pd
 import get_tse_data.tse_config.tse_config as cfg

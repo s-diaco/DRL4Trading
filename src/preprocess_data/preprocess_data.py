@@ -1,16 +1,10 @@
+"""preprocess data before using it"""
 import logging
-from typing import Tuple
 
-import numpy as np
 import pandas as pd
-from config import config
-from finrl.preprocessing.data import data_split
-from finrl.preprocessing.preprocessors import FeatureEngineer
-from numpy.core.multiarray import where
-from numpy.core.numeric import zeros_like
 from stockstats import StockDataFrame as Sdf
 
-from . import csv_data, user_calculated_columns
+import csv_data
 
 
 def add_technical_indicator(
@@ -82,8 +76,8 @@ def add_user_defined_features(data: pd.DataFrame) -> pd.DataFrame:
                     data (pd.DataFrame): the updated dataframe
     '''
     logging.info(f'Adding custom columns')
-    for i in dir(user_calculated_columns):
-        item = getattr(user_calculated_columns, i)
+    for i in dir(custom_columns):
+        item = getattr(custom_columns, i)
         if callable(item):
             # add new column to dataframe
             try:
