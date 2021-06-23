@@ -57,11 +57,11 @@ class ExternalData:
             except Exception as e:
                 logging.error(e)
             if not csv_df.empty:
-                csv_dfs = csv_dfs.append(csv_df)
+                csv_dfs.append(csv_df)
         if csv_dfs:
             concat_df = pd.concat(csv_dfs)
         else:
-            raise ValueError(f'No csv data found')
+            raise ValueError(f'No csv data found for {ticker}')
         return concat_df
 
     def _get_single_csv(

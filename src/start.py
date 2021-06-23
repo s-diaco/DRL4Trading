@@ -4,7 +4,7 @@ from absl import app
 
 import tensorflow as tf
 from tf_agents.system import system_multiprocessing as multiprocessing
-from backtest.backtest import backtest_trades
+# from backtest.backtest import backtest_trades
 
 from config import settings
 from envirement.trading_py_env import TradingPyEnv
@@ -60,9 +60,11 @@ def main(_):
     df_account_value, _ = model.test_trade(env=test_py_env)
 
     # Backtest stats & plots
+    """
     backtest_trades(df_account_value,
                     settings.CSV_FILE_SETTINGS["baseline_file_name"],
                     settings.START_TRADE_DATE, settings.END_DATE)
+    """
 
 
 if __name__ == '__main__':
