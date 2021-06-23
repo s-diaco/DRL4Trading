@@ -44,8 +44,9 @@ class ExternalData:
                 pd.DataFrame: Data from csv file
         """
         csv_dfs = []
+        logging.info(f"Fetching data for {ticker}")
         for csv_dir in csv_dirs:
-            logging.info(f"fetching data for {ticker}")
+            logging.info(f"Checking dir: {csv_dir}")
             price_file_name = f'{ticker}.csv'
             try:
                 csv_df = self._get_single_csv(
@@ -53,20 +54,20 @@ class ExternalData:
                     date_column=date_column,
                     field_mappins=field_mappins
                 )
-                if not csv_df.empty:
-                    csv_dfs = csv_dfs.append(csv_df)
             except Exception as e:
                 logging.error(e)
-        if csv_dfs.empty:
-            raise ValueError(f'No csv data found')
-        else:
+            if not csv_df.empty:
+                csv_dfs = csv_dfs.append(csv_df)
+        if csv_dfs:
             concat_df = pd.concat(csv_dfs)
+        else:
+            raise ValueError(f'No csv data found')
         return concat_df
 
     def _get_single_csv(
         self,
         file_name: pathlib.Path,
-        date_column: str,
+        date_column: str = "date",
         field_mappins: list = None
     ) -> pd.DataFrame:
         """
@@ -115,6 +116,6 @@ class ExternalData:
             date_column,
             field_mappins
         )
-        if bl_df.is_empty:
+        if bl_df.empty:
             raise ValueError(f'Can not load baseline data from "{file_name}"')
         return bl_df

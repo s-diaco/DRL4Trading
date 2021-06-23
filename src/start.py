@@ -1,30 +1,32 @@
-## import modules
 import functools
 import logging
 from absl import app
 
 import tensorflow as tf
 from tf_agents.system import system_multiprocessing as multiprocessing
+from backtest.backtest import backtest_trades
 
-import backtest_tse.backtesting_tse as backtest
-from config import config
-from env_tse.py_env_trading import TradingPyEnv
-from model.models import TradeDRLAgent
+from config import settings
+from envirement.trading_py_env import TradingPyEnv
+from models.model_ppo import TradeDRLAgent
 from preprocess_data import preprocess_data
 
 
 def main(_):
-    logging.basicConfig(format="%(message)s", level=logging.INFO)
-
-    TICKER_LIST = config.DOW_30_TICKER
-    DATA_COLUMNS = config.DATA_COLUMNS
+    ticker_list = settings.DOW_30_TICKER
+    data_columns = settings.DATA_COLUMNS
 
     # Preprocess data
     df_train = preprocess_data.preprocess_data(
-        tic_list=TICKER_LIST,
-        field_mappings=config.DOW_30_HISTORY_FIELD_MAPPINGS
+        tic_list=ticker_list,
+        start_date=settings.START_DATE,
+        end_date=settings.END_DATE,
+        field_mappings=settings.CSV_FIELD_MAPPINGS,
+        baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
+        csv_file_info=settings.CSV_FILE_SETTINGS,
+        tec_indicators=settings.TECHNICAL_INDICATORS_LIST
     )
-    information_cols = DATA_COLUMNS
+    information_cols = data_columns
     # df_train[information_cols].to_csv("temp.csv", index=1, encoding="utf-8")
 
     # Create the envoriments
@@ -37,47 +39,41 @@ def main(_):
             super().__init__(
                 df=df_train,
                 daily_information_cols=information_cols,
-                patient=True,
-                cash_penalty_proportion=0,
-                single_stock_action=config.DISCRETE_ACTION_SPACE,
             )
 
     # Train
     model = TradeDRLAgent()
     model.train_PPO(
         py_env=TrainEvalPyEnv,
-        collect_episodes_per_iteration=config.NUM_EPISODES_PER_ITER,
-        policy_checkpoint_interval=config.POLIICY_CHKPT_INTERVAL,
-        num_iterations=config.NUM_ITERS,
-        num_parallel_environments=config.N_PARALLEL_CALLS,
+        collect_episodes_per_iteration=settings.NUM_EPISODES_PER_ITER,
+        policy_checkpoint_interval=settings.POLIICY_CHKPT_INTERVAL,
+        num_iterations=settings.NUM_ITERS,
+        num_parallel_environments=settings.N_PARALLEL_CALLS,
     )
 
     # Predict
     test_py_env = TradingPyEnv(
-                df=df_trade,
+                # TODO should change to df_trade
+                df=df_train,
                 daily_information_cols=information_cols,
-                patient=True,
-                cash_penalty_proportion=0,
-                single_stock_action=config.DISCRETE_ACTION_SPACE
     )
     df_account_value, _ = model.test_trade(env=test_py_env)
 
     # Backtest stats & plots
-    backtest.backtest_tse_trades(
-        df_account_value, "^TSEI", config.START_TRADE_DATE, config.END_DATE)
+    backtest_trades(df_account_value,
+                    settings.CSV_FILE_SETTINGS["baseline_file_name"],
+                    settings.START_TRADE_DATE, settings.END_DATE)
 
 
 if __name__ == '__main__':
-    if config.N_PARALLEL_CALLS > 1:
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
+    if settings.N_PARALLEL_CALLS > 1:
         multiprocessing.handle_main(functools.partial(app.run, main))
 
 
 # TODO:
-# - auto detect if file needs to redownload
-# - set source dir to python path to access parent dirs
 # - automatic optimization of hyperparameters
 # - implement handling of variable episode lenghs
 # - use other agents
 # - implement single-day predict function
-# - add option to add all csv files from a folder
 # - why is average episode lenght not constant?

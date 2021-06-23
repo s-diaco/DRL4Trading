@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 from stockstats import StockDataFrame as Sdf
 
-import csv_data
+from preprocess_data import csv_data, custom_columns
 
 
 def add_technical_indicator(
@@ -87,9 +87,9 @@ def add_user_defined_features(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def preprocess_data(tic_list, 
-                    start_date, end_date,
-                    field_mappings) -> pd.DataFrame:
+def preprocess_data(tic_list, start_date, end_date,
+                    field_mappings, baseline_filed_mappings,
+                    csv_file_info, tec_indicators) -> pd.DataFrame:
     """preprocess data before using"""
 
     # if not os.path.exists("./" + config.DATA_SAVE_DIR):
@@ -109,18 +109,22 @@ def preprocess_data(tic_list,
     data_loader = csv_data.CSVData(
         start_date=start_date,
         end_date=end_date,
-        baseline_file_name=config.BASELINE_FILE_NAME,
-        baseline_dir=config.BASELINE_DIR,
         ticker_list=tic_list,
-        csv_dirs=config.TICKER_CSV_DIR_LIST,
-        has_daily_trading_limit=config.HAS_DAILY_TRADING_LIMIT,
-        use_baseline_data=config.USE_BASELINE_DATA)
-    raw_df = data_loader.fetch_data(field_mappings=field_mappings)
+        csv_dirs=csv_file_info["dir_list"],
+        baseline_file_name=csv_file_info["baseline_file_name"],
+        has_daily_trading_limit=csv_file_info["has_daily_trading_limit"],
+        use_baseline_data=csv_file_info["use_baseline_data"],
+        baseline_filed_mappings=baseline_filed_mappings,
+        baseline_date_column_name=csv_file_info["baseline_date_column_name"]
+        )
+    raw_df = data_loader.fetch_data(
+        field_mappings = field_mappings,
+        date_column=csv_file_info["date_column_name"])
 
     # Preprocess Data
     processed_data = add_technical_indicator(
         data=raw_df,
-        tech_indicator_list=config.TECHNICAL_INDICATORS_LIST
+        tech_indicator_list=tec_indicators
     )
 
     processed_data = add_user_defined_features(

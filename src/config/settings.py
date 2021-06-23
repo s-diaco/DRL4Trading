@@ -22,13 +22,35 @@ DATA_SAVE_DIR = f"datasets"
 TRAINED_MODEL_DIR = f"trained_models"
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 RESULTS_DIR = f"results"
-
-BASELINE_FILE_NAME = "tickers_data/dow30/^DJI.csv"
-TICKER_CSV_DIR_LIST = ["tickers_data/dow30"]
-HAS_DAILY_TRADING_LIMIT = False
-USE_BASELINE_DATA = True
 # os.makedirs(TRAINED_MODEL_DIR)
 
+CSV_FILE_SETTINGS = {
+    "baseline_file_name": "tickers_data/dow30/^DJI.csv",
+    "dir_list": ["tickers_data/dow30"],
+    "has_daily_trading_limit": False,
+    "use_baseline_data": True,
+    "date_column_name": "datadate",
+    "baseline_date_column_name": "Date"
+}
+
+CSV_FIELD_MAPPINGS = {
+    "datadate": "date",
+    "prcod": "open",
+    "prchd": "high",
+    "prcld": "low",
+    "prccd": "close",
+    "cshtrd": "volume",
+    "ajexdi": "adj_factor",
+}
+
+BASELINE_FIELD_MAPPINGS = {
+    "Date": "date",
+    "Open": "open",
+    "High": "high",
+    "Low": "low",
+    "Close": "close",
+    "Volume": "volume",
+}
 
 ## time_fmt = '%Y-%m-%d'
 START_DATE = "2015-01-01"
@@ -64,26 +86,6 @@ TECHNICAL_INDICATORS_LIST = ["macd",
                             "individual_buy_value", "corporate_buy_value", "individual_sell_value",
                             "corporate_sell_value", "individual_buy_count", "corporate_buy_count",
                             "individual_sell_count", "corporate_sell_count"]
-
-
-# Model Parameters
-A2C_PARAMS = {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
-PPO_PARAMS = {
-    "n_steps": 2048,
-    "ent_coef": 0.01,
-    "learning_rate": 0.00025,
-    "batch_size": 64,
-}
-DDPG_PARAMS = {"batch_size": 128, "buffer_size": 50000, "learning_rate": 0.001}
-TD3_PARAMS = {"batch_size": 100,
-              "buffer_size": 1000000, "learning_rate": 0.001}
-SAC_PARAMS = {
-    "batch_size": 64,
-    "buffer_size": 100000,
-    "learning_rate": 0.0001,
-    "learning_starts": 100,
-    "ent_coef": "auto_0.1",
-}
 
 ########################################################
 ############## Stock Ticker Setup starts ##############
@@ -153,7 +155,7 @@ DOW_30_TICKER = [
     "DD",
 ]
 
-DOW_30_HISTORY_FIELD_MAPPINGS = {
+DOW_30_DEFAULT_HISTORY_FIELD_MAPPINGS = {
     "datadate": "date",
     "prcod": "open",
     "prchd": "high",

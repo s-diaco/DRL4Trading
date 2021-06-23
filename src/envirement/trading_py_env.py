@@ -69,9 +69,9 @@ class TradingPyEnv(py_environment.PyEnvironment):
         cache_indicator_data=True,
         cash_penalty_proportion=0.1,
         random_start=True,
-        patient=False,
+        patient=True,
         currency="$",
-        single_stock_action=False
+        discrete_action=True
     ):
         super().__init__()
         self.df = df
@@ -98,8 +98,8 @@ class TradingPyEnv(py_environment.PyEnvironment):
             1 + len(self.assets) + len(self.assets) *
             len(self.daily_information_cols)
         )
-        self._single_stock_action = single_stock_action
-        if self._single_stock_action:
+        self._discrete_action = discrete_action
+        if self._discrete_action:
             self._action_spec = array_spec.BoundedArraySpec(
                 shape=(), dtype=np.int32,
                 minimum=0, maximum=2*len(self.assets),
@@ -279,7 +279,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         if self._current_time_step.is_last():
             return self._reset()
 
-        if self._single_stock_action:
+        if self._discrete_action:
             arr_actions = np.zeros(shape=(len(self.assets),), dtype=np.float32)
             if actions > 0:
                 if actions < len(self.assets)+1:

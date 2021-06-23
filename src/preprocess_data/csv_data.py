@@ -1,7 +1,8 @@
 import pathlib
 import pandas as pd
-import get_tse_data.tse_config.tse_config as cfg
-from . import fetch_external_data
+
+from preprocess_data.config import csvconfig as cfg
+from preprocess_data import fetch_external_data
 
 
 class CSVData:
@@ -31,41 +32,45 @@ class CSVData:
         ticker_list: list,
         csv_dirs: list,
         baseline_file_name: str = None,
-        baseline_dir: str = None,
-        date_column_name: str = "date",
         has_daily_trading_limit: bool = False,
-        use_baseline_data: bool = False):
+        use_baseline_data: bool = False,
+        baseline_filed_mappings = None,
+        baseline_date_column_name: str = "date"):
         """
-        get price data [and add custom data to it]
+        get price data [and add custom]
         """
         self.start_date = start_date
         self.end_date = end_date
         self.ticker_list = ticker_list
-        self._date_column = date_column_name
         self._csv_dirs = csv_dirs
         self.has_daily_trading_limit = has_daily_trading_limit
         self.use_baseline_data = use_baseline_data
-        self.baseline_df = self._get_baseline(baseline_file_name, baseline_dir)
+        if self.use_baseline_data:
+            self.baseline_df = self._get_baseline(
+                file_name=baseline_file_name,
+                field_mappings=baseline_filed_mappings,
+                baseline_date_column_name=baseline_date_column_name)
 
-    def _get_baseline(self, file_name, csv_dir) -> pd.DataFrame:
+    def _get_baseline(self, file_name, field_mappings, baseline_date_column_name) -> pd.DataFrame:
         """
         get tse index as a dataframe
         """
 
         baseline_fetcher = fetch_external_data.ExternalData(
             self.start_date,
-            self.end_date
+            self.end_date,
         )
         bline_df = baseline_fetcher.fetch_baseline_from_csv(
-            csv_dir,
-            file_name
+            file_name=file_name, date_column=baseline_date_column_name,
+            field_mappins=field_mappings
         )
         bline_df["tic"] = "BLine"
         return bline_df
 
     def process_single_tic(self,
                            ticker,
-                           field_mappings
+                           field_mappings,
+                           date_column
     ) -> pd.DataFrame:
         """
         process a single ticker and return the dataframe
@@ -77,7 +82,8 @@ class CSVData:
         df = data_fetcher.fetch_from_csv(
             csv_dirs=self._csv_dirs,
             ticker=ticker,
-            field_mappins=field_mappings
+            field_mappins=field_mappings,
+            date_column=date_column
         )
 
         df = df.reindex(self.baseline_df.index)
@@ -103,7 +109,7 @@ class CSVData:
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek + 2) % 7
         return df
 
-    def fetch_data(self, field_mappings) -> pd.DataFrame:
+    def fetch_data(self, field_mappings, date_column) -> pd.DataFrame:
         """
         get ticker data
         """
@@ -115,7 +121,8 @@ class CSVData:
         for tic in self.ticker_list:
             temp_df = self.process_single_tic(
                 ticker=tic,
-                field_mappings=field_mappings
+                field_mappings=field_mappings,
+                date_column=date_column
             )
             if not temp_df.empty:
                 combined_frame = combined_frame.append(temp_df)
