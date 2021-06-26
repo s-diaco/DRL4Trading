@@ -218,13 +218,21 @@ class TradeDRLAgent:
                 train_checkpointer.initialize_or_restore()
             except ValueError as val_err:
                 logging.info(f'{str(val_err)}:\nResetting checkponts.')
-                try:
-                    shutil.rmtree(root_dir)
-                except OSError as os_err:
-                    # TODO is it good to raise an Exception here?
-                    logging.info('Error: '
-                                f'{os_err.filename} - '
-                                f'{os_err.strerror}.')
+                shutil.rmtree(root_dir)
+                train_checkpointer = common.Checkpointer(
+                    ckpt_dir=train_dir,
+                    agent=tf_agent,
+                    global_step=global_step,
+                    metrics=metric_utils.MetricsGroup(
+                        train_metrics, "train_metrics"),
+                )
+                policy_checkpointer = common.Checkpointer(
+                    ckpt_dir=os.path.join(train_dir, "policy"),
+                    policy=eval_policy,
+                    global_step=global_step,
+                )
+
+                train_checkpointer.initialize_or_restore()
 
             replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
                 tf_agent.collect_data_spec,
@@ -381,7 +389,11 @@ class TradeDRLAgent:
         # load policy
         policy_path = os.path.join(
             "trained_models/model_ppo/policy_saved_model/complete_policy")
-        policy = tf.saved_model.load(policy_path)
+        try:
+            policy = tf.saved_model.load(policy_path)
+        except OSError as e:
+            raise ValueError(f'{str(e)}'
+                            '\nNo trained model found. Train the model first.')
         # account_memory = []
         # actions_memory = []
         # transitions = []

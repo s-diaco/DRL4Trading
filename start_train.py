@@ -70,9 +70,20 @@ def main(_):
     )
 
     # Predict
+    
+    # Preprocess prediction data
+    df_trade = preprocess_data.preprocess_data(
+        tic_list=ticker_list,
+        start_date=settings.START_TRADE_DATE,
+        end_date=settings.END_TRADE_DATE,
+        field_mappings=settings.CSV_FIELD_MAPPINGS,
+        baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
+        csv_file_info=settings.CSV_FILE_SETTINGS,
+        user_columns=settings.USER_DEFINED_FEATURES
+    )
     test_py_env = TradingPyEnv(
                 # TODO should change to df_trade
-                df=df_train,
+                df=df_trade,
                 daily_information_cols=information_cols,
     )
     df_account_value, _ = model.test_trade(env=test_py_env)

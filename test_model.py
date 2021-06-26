@@ -24,19 +24,23 @@ def main(_):
         end_date=settings.END_TRADE_DATE,
         field_mappings=settings.CSV_FIELD_MAPPINGS,
         baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
-        csv_file_info=settings.CSV_FILE_SETTINGS
+        csv_file_info=settings.CSV_FILE_SETTINGS,
+        user_columns=settings.USER_DEFINED_FEATURES
     )
     information_cols = []
+    unavailable_cols = []
     for col in data_columns:
         if col in df_trade.columns:
             information_cols.append(col)
         else:
-            logging.info(f'column {col} not in the train data. skipped')
+            unavailable_cols.append(col)
     if not information_cols:
         logging.error('No column to train')
         raise ValueError
     else:
-        logging.info(f'Columns used to predict: \n{information_cols}')
+        logging.info(f'Columns used to train:\n{information_cols} ✅')
+        if unavailable_cols:
+            logging.info(f'Unavailable columns:\n{unavailable_cols} ❌')
 
     # df_trade[information_cols].to_csv("temp.csv", index=1, encoding="utf-8")
 
@@ -46,7 +50,6 @@ def main(_):
 
     # Predict
     test_py_env = TradingPyEnv(
-        # TODO should change to df_trade
         df=df_trade,
         daily_information_cols=information_cols,
     )
