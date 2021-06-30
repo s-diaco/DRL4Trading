@@ -46,18 +46,12 @@ def backtest_stats(account_value, value_col_name="account_value"):
 
 def backtest_plot(
     account_value,
-    baseline_start,
-    baseline_end,
-    baseline_ticker="^DJI",
+    baseline_df,
     value_col_name="account_value",
 ):
 
     df = deepcopy(account_value)
     test_returns = get_daily_return(df, value_col_name=value_col_name)
-
-    baseline_df = get_baseline(
-        ticker=baseline_ticker, start=baseline_start, end=baseline_end
-    )
 
     baseline_returns = get_daily_return(baseline_df, value_col_name="close")
     shared_index = test_returns.index & baseline_returns.index

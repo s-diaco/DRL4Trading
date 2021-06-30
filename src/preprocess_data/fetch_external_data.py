@@ -3,6 +3,7 @@ Get csv data from [multiple] dirs
 """
 import logging
 import pathlib
+from halo.halo import Halo
 
 import pandas as pd
 
@@ -43,21 +44,22 @@ class ExternalData:
         Returns:
                 pd.DataFrame: Data from csv file
         """
-        csv_dfs = []
-        logging.info(f"Fetching data for {ticker}")
-        for csv_dir in csv_dirs:
-            logging.info(f"Checking dir: {csv_dir}")
-            price_file_name = f'{ticker}.csv'
-            try:
-                csv_df = self._get_single_csv(
-                    file_name=csv_dir/pathlib.Path(price_file_name),
-                    date_column=date_column,
-                    field_mappins=field_mappins
-                )
-            except Exception as e:
-                logging.error(e)
-            if not csv_df.empty:
-                csv_dfs.append(csv_df)
+        with Halo(text='Gettng dirs', spinner='arrow3') as halo_log:
+            csv_dfs = []
+            halo_log.text=f'Fetching data for {ticker}'
+            for csv_dir in csv_dirs:
+                halo_log.text=f'Fetching data for {ticker} -> checking: {csv_dir}'
+                price_file_name = f'{ticker}.csv'
+                try:
+                    csv_df = self._get_single_csv(
+                        file_name=csv_dir/pathlib.Path(price_file_name),
+                        date_column=date_column,
+                        field_mappins=field_mappins
+                    )
+                except Exception as e:
+                    logging.error(e)
+                if not csv_df.empty:
+                    csv_dfs.append(csv_df)
         if csv_dfs:
             concat_df = pd.concat(csv_dfs)
         else:
@@ -91,6 +93,7 @@ class ExternalData:
         csv_df = csv_df.loc[self.first_day:self.last_day]
         if field_mappins:
             csv_df = csv_df.rename(columns=field_mappins)
+        csv_df.index.names = ['date']
         return csv_df
 
     def fetch_baseline_from_csv(

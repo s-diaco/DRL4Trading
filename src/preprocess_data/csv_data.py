@@ -1,8 +1,9 @@
 import pathlib
+
 import pandas as pd
 
+from preprocess_data import add_technical_indicator, fetch_external_data
 from preprocess_data.config import csvconfig as cfg
-from preprocess_data import fetch_external_data
 
 
 class CSVData:
@@ -29,8 +30,8 @@ class CSVData:
         self,
         start_date: str, 
         end_date: str,
-        ticker_list: list,
-        csv_dirs: list,
+        ticker_list: list = None,
+        csv_dirs: list = None,
         baseline_file_name: str = None,
         has_daily_trading_limit: bool = False,
         use_baseline_data: bool = False,
@@ -85,7 +86,6 @@ class CSVData:
             field_mappins=field_mappings,
             date_column=date_column
         )
-
         df = df.reindex(self.baseline_df.index)
         df["tic"] = ticker
         df['index_close'] = self.baseline_df['close']
@@ -109,7 +109,8 @@ class CSVData:
         df["day"] = (pd.to_datetime(df["date"]).dt.dayofweek + 2) % 7
         return df
 
-    def fetch_data(self, field_mappings, date_column) -> pd.DataFrame:
+    def fetch_data(
+        self, field_mappings, date_column) -> pd.DataFrame:
         """
         get ticker data
         """

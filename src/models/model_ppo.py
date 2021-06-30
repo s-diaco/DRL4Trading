@@ -360,13 +360,13 @@ class TradeDRLAgent:
                 is_complete=True
             )
 
+    #TODO delete
     @staticmethod
-    def predict_trades(py_test_env):
+    def predict_trades(test_py_env):
         """make a prediction"""
 
         # load envoirement
-        pred_py_env = py_test_env()
-        pred_tf_env = tf_py_environment.TFPyEnvironment(pred_py_env)
+        pred_tf_env = tf_py_environment.TFPyEnvironment(test_py_env)
 
         # load policy
         policy_path = os.path.join(
@@ -380,8 +380,8 @@ class TradeDRLAgent:
             policy_step = policy.action(time_step)
             time_step = pred_tf_env.step(policy_step.action)
         if time_step.is_last():
-            account_memory = pred_py_env.save_asset_memory()
-            actions_memory = pred_py_env.save_action_memory()
+            account_memory = test_py_env.save_asset_memory()
+            actions_memory = test_py_env.save_action_memory()
             # account_memory = tf_test_env.env_method(method_name="save_asset_memory")
             # actions_memory = tf_test_env.env_method(method_name="save_action_memory")
             # transitions.append([time_step, policy_step])
@@ -411,10 +411,10 @@ class TradeDRLAgent:
 
     def test_trade(self, env):
 
-        df_account_value, df_actions = self.predict_trades(py_test_env=env)
+        df_account_value, df_actions = self.predict_trades(test_py_env=env)
 
         # Trade info
-        logging.info(f"Model actions:\n{df_actions.head()}")
+        logging.info(f"Last actions:\n{df_actions.tail()}")
         logging.info(
             f"Account value data shape: {df_account_value.shape}:\n{df_account_value.head(10)}")
         
