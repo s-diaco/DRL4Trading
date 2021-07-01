@@ -5,3 +5,4 @@
 # - implement single-day predict function
 # - why is average episode lenght not constant?
 # - CSVData class should havea simpler constructor
+# - remove train log dirs when needed

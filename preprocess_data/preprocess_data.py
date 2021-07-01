@@ -5,10 +5,10 @@ import types
 
 import pandas as pd
 
-from preprocess_data import csv_data, custom_columns
+from preprocess_data import csv_data, custom_column, custom_columns
 
 
-def new_column_from_client_func(client_func, data):
+def new_column_from_client_func(client_class, data):
     '''
     Create "series" from a given function and dataframe
 
@@ -23,11 +23,11 @@ def new_column_from_client_func(client_func, data):
                     TypeError: if the column type is not pd.Series
     '''
     # TODO check if there are any Nan or inf values in new column
-    column = client_func(data)
+    column = client_class(data)
     if isinstance(column, pd.Series):
         return column
     else:
-        raise TypeError(f'Type of return value for "{str(client_func)}" \
+        raise TypeError(f'Type of return value for "{str(client_class)}" \
             func should be "pd.Series"')
 
 
@@ -42,19 +42,15 @@ def add_user_defined_features(data: pd.DataFrame) -> pd.DataFrame:
                     data (pd.DataFrame): the updated dataframe
     '''
     logging.info('Adding custom columns')
-    for i in dir(custom_columns):
-        item = getattr(custom_columns, i)
-        if callable(item):
+    for column_cls in custom_column.CustomColumn.__subclasses__():
+        new_col = column_cls.__name__
+        try:
             # add new column to dataframe
-            try:
-                func_params=inspect.signature(item)
-                first_param = next(iter(func_params.parameters))
-                if first_param == 'data':
-                    data[i] = new_column_from_client_func(item, data)
-            except AttributeError:
-                logging.info(f'Add column "{i}": unsuccessful!')
-            except ValueError:
-                pass
+            data[new_col] = new_column_from_client_func(column_cls, data)
+        except AttributeError:
+            logging.info(f'Add column "{new_col}": unsuccessful!')
+        except ValueError:
+            pass
     return data
 
 
