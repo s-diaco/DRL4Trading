@@ -73,9 +73,8 @@ DATA_COLUMNS = ["change", "stopped", "b_queue", "s_queue",
                 "count_ma_ratio", "ma_ratio", "indv_buy_sell_ratio",
                 "corp_buy_sell_ratio", "ind_corp_buy_ratio"]
 
-USER_DEFINED_FEATURES = ["change", "daily_variance", "volume_ma_ratio",
-                "count_ma_ratio", "ma_ratio", "indv_buy_sell_ratio",
-                "corp_buy_sell_ratio", "ind_corp_buy_ratio"]
+USER_DEFINED_FEATURES = ["ChangeCol", "DailyVarianceCol", "CountMARatioCol",
+                        "SMARatioIndicator"]
 
 # stockstats technical indicator column names
 # check https://pypi.org/project/stockstats/ for different names

@@ -23,9 +23,11 @@
 """A collection of tools needed by costom columns"""
 
 import numpy as np
+import pandas as pd
+from ta.trend import SMAIndicator
 
 
-def divide_array(col1, col2, col_out, zeros_or_ons):
+def divide_array(col1, col2, col_out, zeros_or_ons) -> pd.Series:
     """
     Gets two arrays and divides using numpy.divide
 
@@ -51,4 +53,30 @@ def divide_array(col1, col2, col_out, zeros_or_ons):
             col2,
             out=np.ones_like(col_out),
             where=col2 != 0)
-    return divided_array
+    return pd.Series(divided_array)
+
+
+def sma_ratio(
+    col,
+    short_ma=5,
+    long_ma=30
+) -> pd.Series:
+    """
+    Calculate the ratio between two moving average indicators
+
+    Parameters:
+            col (pandas.Series): column to calculate on.
+            short_ma (int): Number of days to calculate short MA.
+            long_ma (int): Number of days to calculate long MA.
+
+    Returns:
+            pd.Series: A dataframe containing MA ratio
+    """
+    short_sma = SMAIndicator(close=col,
+                             window=short_ma,
+                             fillna=True).sma_indicator().values
+    long_sma = SMAIndicator(close=col,
+                            window=long_ma,
+                            fillna=True).sma_indicator().values
+    sma_ratio_col = divide_array(short_sma, long_sma, short_sma, False)
+    return sma_ratio_col

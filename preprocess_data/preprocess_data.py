@@ -1,14 +1,12 @@
 """preprocess data before using it"""
-import inspect
 import logging
-import types
 
 import pandas as pd
 
-from preprocess_data import csv_data, custom_column, custom_columns
+from preprocess_data import csv_data, custom_col_base, custom_columns
 
 
-def new_column_from_client_func(client_class, data):
+def col_from_cls(client_class, data):
     '''
     Create "series" from a given function and dataframe
 
@@ -23,40 +21,45 @@ def new_column_from_client_func(client_class, data):
                     TypeError: if the column type is not pd.Series
     '''
     # TODO check if there are any Nan or inf values in new column
-    column = client_class(data)
-    if isinstance(column, pd.Series):
-        return column
+    column_cls = client_class(data)
+    col_name, col_data = column_cls.add_column()
+    if isinstance(col_data, pd.Series):
+        return col_name, col_data
     else:
-        raise TypeError(f'Type of return value for "{str(client_class)}" \
-            func should be "pd.Series"')
+        raise TypeError('Method "add_column()" has to return "pd.Series"')
 
 
-def add_user_defined_features(data: pd.DataFrame) -> pd.DataFrame:
+def add_user_defined_features(data: pd.DataFrame, user_cols) -> pd.DataFrame:
     '''
     Add data from functions in 'user_calculated_columns.py'.
 
             Parameters:
                     data (pd.DataFrame): data used to calculate new columns
+                    user_cols (list): user class names to use
 
             Returns:
                     data (pd.DataFrame): the updated dataframe
     '''
     logging.info('Adding custom columns')
-    for column_cls in custom_column.CustomColumn.__subclasses__():
-        new_col = column_cls.__name__
-        try:
-            # add new column to dataframe
-            data[new_col] = new_column_from_client_func(column_cls, data)
-        except AttributeError:
-            logging.info(f'Add column "{new_col}": unsuccessful!')
-        except ValueError:
-            pass
+    for col_cls in custom_col_base.CustomColumn.__subclasses__():
+        cls_name = col_cls.__name__
+        if(col_cls.__module__ == custom_columns.__name__):
+            if cls_name in user_cols:
+                try:
+                    # add new column to dataframe
+                    new_col_name, new_col = col_from_cls(col_cls, data)
+                    data[new_col_name] = new_col
+                    logging.info(f'Add column "{new_col_name}" ✅')
+                except Exception as e:
+                    logging.info(f'Add column from user class "{cls_name}" '
+                    f'❌: {str(e)}')
+
     return data
 
 
 def preprocess_data(tic_list, start_date, end_date,
                     field_mappings, baseline_filed_mappings,
-                    csv_file_info) -> pd.DataFrame:
+                    csv_file_info, user_columns) -> pd.DataFrame:
     """preprocess data before using"""
     logging.info(f'Train start date: {start_date}')
     logging.info(f'Train end date: {end_date}')
@@ -79,7 +82,7 @@ def preprocess_data(tic_list, start_date, end_date,
 
     # Preprocess Data
     processed_data = add_user_defined_features(
-        processed_data
+        processed_data, user_columns
     )
 
     logging.info(f'Preprocessed data (tail): \n{processed_data.tail()}')
