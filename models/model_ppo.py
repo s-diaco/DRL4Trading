@@ -16,6 +16,7 @@
 import logging
 import os
 import time
+import shutil
 
 import gin
 import tensorflow as tf
@@ -59,7 +60,6 @@ class TradeDRLAgent:
 
     def _get_model_dirs(self, root_dir):
         root_dir = os.path.expanduser(root_dir)
-        root_dir=os.path.join(root_dir, "model_ppo")
         train_dir = os.path.join(root_dir, "train")
         eval_dir = os.path.join(root_dir, "eval")
         saved_model_dir = os.path.join(root_dir, "policy_saved_model")
@@ -115,7 +115,7 @@ class TradeDRLAgent:
     def train_PPO(
         self,
         py_env,
-        root_dir="./trained_models",
+        root_dir="./trained_models/model_ppo",
         random_seed=None,
         # Params for collect
         # num_environment_steps=25000000,
@@ -201,21 +201,30 @@ class TradeDRLAgent:
                     batch_size=train_env.batch_size
                 ),
             ]
+            try:
+                train_checkpointer = common.Checkpointer(
+                    ckpt_dir=train_dir,
+                    agent=tf_agent,
+                    global_step=global_step,
+                    metrics=metric_utils.MetricsGroup(
+                        train_metrics, "train_metrics"),
+                )
+                policy_checkpointer = common.Checkpointer(
+                    ckpt_dir=os.path.join(train_dir, "policy"),
+                    policy=eval_policy,
+                    global_step=global_step,
+                )
 
-            train_checkpointer = common.Checkpointer(
-                ckpt_dir=train_dir,
-                agent=tf_agent,
-                global_step=global_step,
-                metrics=metric_utils.MetricsGroup(
-                    train_metrics, "train_metrics"),
-            )
-            policy_checkpointer = common.Checkpointer(
-                ckpt_dir=os.path.join(train_dir, "policy"),
-                policy=eval_policy,
-                global_step=global_step,
-            )
-
-            train_checkpointer.initialize_or_restore()
+                train_checkpointer.initialize_or_restore()
+            except ValueError as val_err:
+                logging.info(f'{str(val_err)}:\nResetting checkponts.')
+                try:
+                    shutil.rmtree(root_dir)
+                except OSError as os_err:
+                    # TODO is it good to raise an Exception here?
+                    logging.info('Error: '
+                                f'{os_err.filename} - '
+                                f'{os_err.strerror}.')
 
             replay_buffer = episodic_replay_buffer.EpisodicReplayBuffer(
                 tf_agent.collect_data_spec,

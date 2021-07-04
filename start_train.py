@@ -1,3 +1,4 @@
+from backtest.backtest import backtest_trades
 import functools
 import logging
 
@@ -76,12 +77,16 @@ def main(_):
     )
     df_account_value, _ = model.test_trade(env=test_py_env)
 
+    baseline_df = preprocess_data.get_baseline_df(
+        start_date=settings.START_TRADE_DATE,
+        end_date=settings.END_TRADE_DATE,
+        baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
+        csv_file_info=settings.CSV_FILE_SETTINGS
+    ).reset_index()
+
     # Backtest stats & plots
-    """
     backtest_trades(df_account_value,
-                    settings.CSV_FILE_SETTINGS["baseline_file_name"],
-                    settings.START_TRADE_DATE, settings.END_DATE)
-    """
+                    baseline_df)
 
 
 if __name__ == '__main__':

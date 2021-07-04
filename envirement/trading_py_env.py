@@ -31,6 +31,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from halo import Halo
 from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step
@@ -100,7 +101,7 @@ class TradingPyEnv(py_environment.PyEnvironment):
         patient=True,
         currency="$",
         discrete_action=True,
-        has_daily_trading_limit = False
+        has_daily_trading_limit=False
     ):
         super().__init__()
         self.df = df
@@ -148,10 +149,10 @@ class TradingPyEnv(py_environment.PyEnvironment):
         self.cached_data = None
         self.cash_penalty_proportion = cash_penalty_proportion
         if self.cache_indicator_data:
-            logging.info("caching data")
-            self.cached_data = [
-                self.get_date_vector(i) for i, _ in enumerate(self.dates)
-            ]
+            with Halo(text='caching env data', spinner='arrow3'):
+                self.cached_data = [
+                    self.get_date_vector(i) for i, _ in enumerate(self.dates)
+                ]
             logging.info("data cached!")
 
     def action_spec(self):

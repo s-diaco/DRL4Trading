@@ -6,3 +6,6 @@
 # - why is average episode lenght not constant?
 # - CSVData class should havea simpler constructor
 # - remove train log dirs when needed
+# - automatic hyperparameter tuning
+# - is data normaization needed for other models?
+# - add tic to data columns needs some work
