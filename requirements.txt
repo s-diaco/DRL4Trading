@@ -3,6 +3,7 @@ pandas
 stockstats
 scikit-learn
 ta
+tensortrade
 # gym
 tf-agents
 # pyfolio install the last version from github
