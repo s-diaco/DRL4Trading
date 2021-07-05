@@ -11,6 +11,8 @@ DRL4Trading is an open source Python framework for building, training and evalua
 
 - **Only csv files.** As of today, the framework work just with csv data. you should provide separate csv files for every single ticker.
 
+- **Only PPO.** as of today, this framework only works with PPO algorithm. more models will be added later if I can find more free time.
+
 - **Supports DTL.** In some markets there is a [daily trading limit](https://www.investopedia.com/terms/d/daily_trading_limit.asp) (A maximum or minimum price per day). The envoirement supports daily trading limits and stopped tickers.
 
 - **Select columns to train.** You can set wich columns to use for the training in the settings file (config/settings.py) under "DATA_COLUMNS" section.
