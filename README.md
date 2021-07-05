@@ -1,4 +1,5 @@
 # DRL4Trading
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
 DRL4Trading is an open source Python framework for building, training and evaluating trading algorithms using deep reinforcement learning. This framework uses numpy, pandas, tensorflow (v2) and tf-agents.
 
