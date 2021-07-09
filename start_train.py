@@ -15,7 +15,6 @@ from preprocess_data import preprocess_data
 # from backtest.backtest import backtest_trades
 
 
-
 def main(_):
     ticker_list = settings.DOW_30_TICKER
     data_columns = settings.DATA_COLUMNS
