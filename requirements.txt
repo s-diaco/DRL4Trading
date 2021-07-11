@@ -4,6 +4,7 @@ stockstats
 scikit-learn
 ta
 tensortrade
+ipywidgets
 # gym
 tf-agents
 # pyfolio install the last version from github
