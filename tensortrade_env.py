@@ -2,12 +2,24 @@
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
 from IPython import get_ipython
+from backtest.backtest import backtest_trades
+import functools
+import logging
 
+import tensorflow as tf
+from absl import app
+from absl import logging as absl_logging
+from tf_agents.system import system_multiprocessing as multiprocessing
+
+from config import settings
+from envirement.trading_py_env import TradingPyEnv
+from models.model_ppo import TradeDRLAgent
+from preprocess_data import preprocess_data
 # %% [markdown]
 # ## Install TensorTrade
 
 # %%
-get_ipython().system('python3 -m pip install git+https://github.com/tensortrade-org/tensortrade.git')
+# get_ipython().system('python3 -m pip install git+https://github.com/tensortrade-org/tensortrade.git')
 
 # %% [markdown]
 # ## Setup Data Fetching
@@ -29,17 +41,58 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # %%
-cdd = CryptoDataDownload()
+# cdd = CryptoDataDownload()
 
-data = cdd.fetch("Bitstamp", "USD", "BTC", "1h")
+# data = cdd.fetch("Bitstamp", "USD", "BTC", "1h")
 
 
 # %%
-data.head()
+# data.head()
 
 # %% [markdown]
 # ## Create features with the feed module
+FMT = '[%(levelname)s] %(message)s'
+formatter = logging.Formatter(FMT)
 
+absl_logging.get_absl_handler().setFormatter(formatter)
+absl_logging.set_verbosity('info')
+ticker_list = settings.DOW_30_TICKER
+data_columns = settings.DATA_COLUMNS
+data_columns.append('close')
+data_columns.append('open')
+data_columns.append('high')
+data_columns.append('low')
+data_columns.append('volume')
+data_columns.append('date')
+
+
+# Preprocess data
+df_train = preprocess_data.preprocess_data(
+    tic_list=ticker_list,
+    start_date=settings.START_TRAIN_DATE,
+    end_date=settings.END_TRAIN_DATE,
+    field_mappings=settings.CSV_FIELD_MAPPINGS,
+    baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
+    csv_file_info=settings.CSV_FILE_SETTINGS,
+    user_columns=settings.USER_DEFINED_FEATURES
+)
+information_cols = []
+unavailable_cols = []
+for col in data_columns:
+    if col in df_train.columns:
+        information_cols.append(col)
+    else:
+        unavailable_cols.append(col)
+if not information_cols:
+    logging.error('No column to train')
+    raise ValueError
+else:
+    logging.info(f'Columns used to train:\n{information_cols} ✅')
+    if unavailable_cols:
+        logging.info(f'Unavailable columns:\n{unavailable_cols} ❌')
+
+
+data = df_train[information_cols]
 # %%
 def rsi(price: Stream[float], period: float) -> Stream[float]:
     r = price.diff()
@@ -62,6 +115,7 @@ for c in data.columns[1:]:
     s = Stream.source(list(data[c]), dtype="float").rename(data[c].name)
     features += [s]
 
+# %%
 cp = Stream.select(features, lambda s: s.name == "close")
 
 features = [
@@ -87,8 +141,7 @@ bitstamp = Exchange("bitstamp", service=execute_order)(
 )
 
 portfolio = Portfolio(USD, [
-    Wallet(bitstamp, 10000 * USD),
-    Wallet(bitstamp, 10 * BTC)
+    Wallet(bitstamp, 10000 * USD)
 ])
 
 
@@ -108,7 +161,7 @@ env = default.create(
     reward_scheme="risk-adjusted",
     feed=feed,
     renderer_feed=renderer_feed,
-    renderer=default.renderers.PlotlyTradingChart(),
+    renderer=default.renderers.ScreenLogger(),
     window_size=20
 )
 
@@ -123,7 +176,5 @@ env.observer.feed.next()
 agent = DQNAgent(env)
 
 agent.train(n_steps=200, n_episodes=2, save_path="agents/")
-
-
 
 # %%
