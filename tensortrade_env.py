@@ -32,7 +32,7 @@ from tensortrade.data.cdd import CryptoDataDownload
 from tensortrade.feed.core import Stream, DataFeed
 from tensortrade.oms.exchanges import Exchange
 from tensortrade.oms.services.execution.simulated import execute_order
-from tensortrade.oms.instruments import USD, BTC, ETH
+from tensortrade.oms.instruments import AAPL, MSFT, TSLA, USD, BTC, ETH
 from tensortrade.oms.wallets import Wallet, Portfolio
 from tensortrade.agents import DQNAgent
 
@@ -137,11 +137,16 @@ for i in range(5):
 
 # %%
 bitstamp = Exchange("bitstamp", service=execute_order)(
-    Stream.source(list(data["close"]), dtype="float").rename("USD-BTC")
+    Stream.source(list(data["close"]), dtype="float").rename("USD-AAPL"),
+    Stream.source(list(data["close"]), dtype="float").rename("USD-MSFT"),
+    Stream.source(list(data["close"]), dtype="float").rename("USD-TSLA")
 )
 
 portfolio = Portfolio(USD, [
-    Wallet(bitstamp, 10000 * USD)
+    Wallet(bitstamp, 10000 * USD),
+    Wallet(bitstamp, 0 * MSFT),
+    Wallet(bitstamp, 0 * TSLA),
+    Wallet(bitstamp, 0 * AAPL),
 ])
 
 
@@ -175,6 +180,6 @@ env.observer.feed.next()
 # %%
 agent = DQNAgent(env)
 
-agent.train(n_steps=200, n_episodes=2, save_path="agents/")
+agent.train(n_steps=1000, n_episodes=2, save_path="agents/")
 
 # %%
