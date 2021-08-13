@@ -2,13 +2,15 @@
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
 from IPython import get_ipython
-from backtest.backtest import backtest_trades
 import functools
 import logging
+from numpy.lib.utils import source
 
 import tensorflow as tf
 from absl import app
 from absl import logging as absl_logging
+from tensortrade.oms import instruments
+from tensortrade.oms.instruments.instrument import Instrument
 from tf_agents.system import system_multiprocessing as multiprocessing
 
 from config import settings
@@ -28,7 +30,7 @@ from preprocess_data import preprocess_data
 import pandas as pd
 import tensortrade.env.default as default
 
-from tensortrade.data.cdd import CryptoDataDownload
+from data.read_csv import ReadCSV
 from tensortrade.feed.core import Stream, DataFeed
 from tensortrade.oms.exchanges import Exchange
 from tensortrade.oms.services.execution.simulated import execute_order
@@ -37,13 +39,15 @@ from tensortrade.oms.wallets import Wallet, Portfolio
 from tensortrade.agents import DQNAgent
 
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # %%
-# cdd = CryptoDataDownload()
-
-# data = cdd.fetch("Bitstamp", "USD", "BTC", "1h")
+cdd = ReadCSV()
+symbol_list = settings.TSE_TICKER
+data_dict = {}
+for symbol in symbol_list:
+    data_dict[symbol] = cdd.fetch("tsetmc", "USD", symbol, "1d", False, "tickers_data/tse/adjusted/")
 
 
 # %%
@@ -92,7 +96,7 @@ else:
         logging.info(f'Unavailable columns:\n{unavailable_cols} ❌')
 
 
-data = df_train[information_cols]
+# data = df_train[information_cols]
 # %%
 def rsi(price: Stream[float], period: float) -> Stream[float]:
     r = price.diff()
@@ -136,36 +140,37 @@ for i in range(5):
 # ## Setup Trading Environment
 
 # %%
-bitstamp = Exchange("bitstamp", service=execute_order)(
-    Stream.source(list(data["close"]), dtype="float").rename("USD-AAPL"),
-    Stream.source(list(data["close"]), dtype="float").rename("USD-MSFT"),
-    Stream.source(list(data["close"]), dtype="float").rename("USD-TSLA")
+streams = []
+for symbol in symbol_list:
+    streams.append(
+        Stream.source(list(data_dict[symbol]['close'][-100:]), dtype="float").rename("USD-"+symbol))
+bitstamp = Exchange("tsetmc", service=execute_order)(
+    *streams
 )
 
-portfolio = Portfolio(USD, [
-    Wallet(bitstamp, 10000 * USD),
-    Wallet(bitstamp, 0 * MSFT),
-    Wallet(bitstamp, 0 * TSLA),
-    Wallet(bitstamp, 0 * AAPL),
-])
+# %%
+instrum_dict = {}
+for symbol in symbol_list:
+    instrum_dict[symbol] = Instrument(symbol, 1, 'Name of '+symbol)
 
+wallet_list = [Wallet(bitstamp, 0 * instrum_dict[symbol]) for symbol in symbol_list]
+wallet_list.append(Wallet(bitstamp, 10000000 * USD))
 
-renderer_feed = DataFeed([
-    Stream.source(list(data["date"])).rename("date"),
-    Stream.source(list(data["open"]), dtype="float").rename("open"),
-    Stream.source(list(data["high"]), dtype="float").rename("high"),
-    Stream.source(list(data["low"]), dtype="float").rename("low"),
-    Stream.source(list(data["close"]), dtype="float").rename("close"), 
-    Stream.source(list(data["volume"]), dtype="float").rename("volume") 
-])
+portfolio = Portfolio(USD, wallet_list)
 
+# %%
+streams_feed = []
+for symbol in symbol_list:
+    streams.append(
+        Stream.source(list(data_dict[symbol]['volume'][-100:]), dtype="float").rename("volume:/USD-"+symbol))
+
+feed = DataFeed(streams_feed)
 
 env = default.create(
     portfolio=portfolio,
     action_scheme="managed-risk",
     reward_scheme="risk-adjusted",
     feed=feed,
-    renderer_feed=renderer_feed,
     renderer=default.renderers.ScreenLogger(),
     window_size=20
 )
@@ -180,6 +185,9 @@ env.observer.feed.next()
 # %%
 agent = DQNAgent(env)
 
-agent.train(n_steps=1000, n_episodes=2, save_path="agents/")
+agent.train(n_steps=200, n_episodes=3, save_path="agents/")
 
+# %%
+portfolio.ledger.as_frame().head(20)
+portfolio.total_balances
 # %%
