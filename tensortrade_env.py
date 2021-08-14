@@ -30,7 +30,7 @@ from preprocess_data import preprocess_data
 import pandas as pd
 import tensortrade.env.default as default
 
-from data.read_csv import ReadCSV
+from preprocess_data.read_csv import ReadCSV
 from tensortrade.feed.core import Stream, DataFeed
 from tensortrade.oms.exchanges import Exchange
 from tensortrade.oms.services.execution.simulated import execute_order
@@ -45,10 +45,13 @@ from tensortrade.agents import DQNAgent
 # %%
 cdd = ReadCSV()
 symbol_list = settings.TSE_TICKER
-data_dict = {}
+base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
+price_data_dict = {}
 for symbol in symbol_list:
-    data_dict[symbol] = cdd.fetch("tsetmc", "USD", symbol, "1d", False, "tickers_data/tse/adjusted/")
-
+    temp_df = cdd.fetch(
+        "tsetmc", "USD", symbol, "1d", False, base_dirs)
+    if not temp_df.empty:
+        price_data_dict[symbol] = temp_df
 
 # %%
 # data.head()
@@ -60,49 +63,14 @@ formatter = logging.Formatter(FMT)
 
 absl_logging.get_absl_handler().setFormatter(formatter)
 absl_logging.set_verbosity('info')
-ticker_list = settings.DOW_30_TICKER
-data_columns = settings.DATA_COLUMNS
-data_columns.append('close')
-data_columns.append('open')
-data_columns.append('high')
-data_columns.append('low')
-data_columns.append('volume')
-data_columns.append('date')
 
-
-# Preprocess data
-df_train = preprocess_data.preprocess_data(
-    tic_list=ticker_list,
-    start_date=settings.START_TRAIN_DATE,
-    end_date=settings.END_TRAIN_DATE,
-    field_mappings=settings.CSV_FIELD_MAPPINGS,
-    baseline_filed_mappings=settings.BASELINE_FIELD_MAPPINGS,
-    csv_file_info=settings.CSV_FILE_SETTINGS,
-    user_columns=settings.USER_DEFINED_FEATURES
-)
-information_cols = []
-unavailable_cols = []
-for col in data_columns:
-    if col in df_train.columns:
-        information_cols.append(col)
-    else:
-        unavailable_cols.append(col)
-if not information_cols:
-    logging.error('No column to train')
-    raise ValueError
-else:
-    logging.info(f'Columns used to train:\n{information_cols} ✅')
-    if unavailable_cols:
-        logging.info(f'Unavailable columns:\n{unavailable_cols} ❌')
-
-
-# data = df_train[information_cols]
 # %%
 def rsi(price: Stream[float], period: float) -> Stream[float]:
     r = price.diff()
     upside = r.clamp_min(0).abs()
     downside = r.clamp_max(0).abs()
-    rs = upside.ewm(alpha=1 / period).mean() / downside.ewm(alpha=1 / period).mean()
+    rs = upside.ewm(alpha=1 / period).mean() / \
+        downside.ewm(alpha=1 / period).mean()
     return 100*(1 - (1 + rs) ** -1)
 
 
@@ -115,18 +83,21 @@ def macd(price: Stream[float], fast: float, slow: float, signal: float) -> Strea
 
 
 features = []
-for c in data.columns[1:]:
-    s = Stream.source(list(data[c]), dtype="float").rename(data[c].name)
-    features += [s]
+for symbol in symbol_list:
+    data = price_data_dict[symbol]
+    for c in data.columns[1:6]:
+        s = Stream.source(list(data[c]), dtype="float").rename(f'{data[c].name}:/USD-{symbol}')
+        features += [s]
 
 # %%
-cp = Stream.select(features, lambda s: s.name == "close")
+for symbol in symbol_list:
+    cp = Stream.select(features, lambda s: s.name == f'close:/USD-{symbol}')
 
-features = [
-    cp.log().diff().rename("lr"),
-    rsi(cp, period=20).rename("rsi"),
-    macd(cp, fast=10, slow=50, signal=5).rename("macd")
-]
+    features += [
+        cp.log().diff().rename(f'lr:/USD-{symbol}'),
+        rsi(cp, period=20).rename(f'rsi:/USD-{symbol}'),
+        macd(cp, fast=10, slow=50, signal=5).rename(f'macd:/USD-{symbol}')
+    ]
 
 feed = DataFeed(features)
 feed.compile()
@@ -143,28 +114,23 @@ for i in range(5):
 streams = []
 for symbol in symbol_list:
     streams.append(
-        Stream.source(list(data_dict[symbol]['close'][-100:]), dtype="float").rename("USD-"+symbol))
-bitstamp = Exchange("tsetmc", service=execute_order)(
+        Stream.source(list(price_data_dict[symbol]['close'][-100:]), dtype="float").rename("USD-"+symbol))
+tsetmc = Exchange("tsetmc", service=execute_order)(
     *streams
 )
 
 # %%
 instrum_dict = {}
 for symbol in symbol_list:
-    instrum_dict[symbol] = Instrument(symbol, 1, 'Name of '+symbol)
+    instrum_dict[symbol] = Instrument(symbol, 2, price_data_dict[symbol]['name'][0])
 
-wallet_list = [Wallet(bitstamp, 0 * instrum_dict[symbol]) for symbol in symbol_list]
-wallet_list.append(Wallet(bitstamp, 10000000 * USD))
+wallet_list = [Wallet(tsetmc, 0 * instrum_dict[symbol])
+               for symbol in symbol_list]
+wallet_list.append(Wallet(tsetmc, 10000000 * USD))
 
 portfolio = Portfolio(USD, wallet_list)
 
 # %%
-streams_feed = []
-for symbol in symbol_list:
-    streams.append(
-        Stream.source(list(data_dict[symbol]['volume'][-100:]), dtype="float").rename("volume:/USD-"+symbol))
-
-feed = DataFeed(streams_feed)
 
 env = default.create(
     portfolio=portfolio,
