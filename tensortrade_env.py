@@ -44,12 +44,13 @@ from tensortrade.agents import DQNAgent
 
 # %%
 cdd = ReadCSV()
-symbol_list = settings.TSE_TICKER
-base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
+IRR = Instrument('IRR', 2, 'Iranian Rial')
+symbol_list = settings.TSE_TICKER[0:5]
+base_dirs = ["tickers_data/tse/adjusted/"]
 price_data_dict = {}
 for symbol in symbol_list:
     temp_df = cdd.fetch(
-        "tsetmc", "USD", symbol, "1d", False, base_dirs)
+        "tsetmc", "IRR", symbol, "1d", False, base_dirs)
     if not temp_df.empty:
         price_data_dict[symbol] = temp_df
 
@@ -81,22 +82,15 @@ def macd(price: Stream[float], fast: float, slow: float, signal: float) -> Strea
     signal = md - md.ewm(span=signal, adjust=False).mean()
     return signal
 
-
+# %%
 features = []
 for symbol in symbol_list:
-    data = price_data_dict[symbol]
-    for c in data.columns[1:6]:
-        s = Stream.source(list(data[c]), dtype="float").rename(f'{data[c].name}:/USD-{symbol}')
-        features += [s]
-
-# %%
-for symbol in symbol_list:
-    cp = Stream.select(features, lambda s: s.name == f'close:/USD-{symbol}')
+    cp = Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'close:/IRR-{symbol}')
 
     features += [
-        cp.log().diff().rename(f'lr:/USD-{symbol}'),
-        rsi(cp, period=20).rename(f'rsi:/USD-{symbol}'),
-        macd(cp, fast=10, slow=50, signal=5).rename(f'macd:/USD-{symbol}')
+        cp.log().diff().rename(f'lr:/IRR-{symbol}'),
+        rsi(cp, period=20).rename(f'rsi:/IRR-{symbol}'),
+        macd(cp, fast=10, slow=50, signal=5).rename(f'macd:/IRR-{symbol}')
     ]
 
 feed = DataFeed(features)
@@ -114,7 +108,7 @@ for i in range(5):
 streams = []
 for symbol in symbol_list:
     streams.append(
-        Stream.source(list(price_data_dict[symbol]['close'][-100:]), dtype="float").rename("USD-"+symbol))
+        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR-{symbol}'))
 tsetmc = Exchange("tsetmc", service=execute_order)(
     *streams
 )
@@ -126,9 +120,9 @@ for symbol in symbol_list:
 
 wallet_list = [Wallet(tsetmc, 0 * instrum_dict[symbol])
                for symbol in symbol_list]
-wallet_list.append(Wallet(tsetmc, 10000000 * USD))
+wallet_list.append(Wallet(tsetmc, 10000000 * IRR))
 
-portfolio = Portfolio(USD, wallet_list)
+portfolio = Portfolio(IRR, wallet_list)
 
 # %%
 
@@ -154,6 +148,6 @@ agent = DQNAgent(env)
 agent.train(n_steps=200, n_episodes=3, save_path="agents/")
 
 # %%
-portfolio.ledger.as_frame().head(20)
-portfolio.total_balances
+# portfolio.ledger.as_frame().head(20)
+print(portfolio.total_balances)
 # %%
