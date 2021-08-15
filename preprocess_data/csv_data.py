@@ -69,10 +69,9 @@ class CSVData:
         return bline_df
 
     def process_single_tic(self,
-                           ticker,
-                           field_mappings,
-                           date_column
-    ) -> pd.DataFrame:
+                           filenames: list,
+                           field_mappings: dict,
+                           date_column: str) -> pd.DataFrame:
         """
         process a single ticker and return the dataframe
         """
@@ -82,12 +81,11 @@ class CSVData:
         )
         df = data_fetcher.fetch_from_csv(
             csv_dirs=self._csv_dirs,
-            ticker=ticker,
+            filenames=filenames,
             field_mappins=field_mappings,
             date_column=date_column
         )
         df = df.reindex(self.baseline_df.index)
-        df["tic"] = ticker
         df['index_close'] = self.baseline_df['close']
         df['index_volume'] = self.baseline_df['volume']
         df['index_open'] = self.baseline_df['open']

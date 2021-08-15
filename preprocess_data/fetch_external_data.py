@@ -28,8 +28,8 @@ class ExternalData:
 
     def fetch_from_csv(
         self, csv_dirs: list,
-        ticker: str,
-        field_mappins: list = None,
+        filenames: list,
+        field_mappins: dict = None,
         date_column: str = "date"
     ) -> pd.DataFrame:
         """
@@ -37,8 +37,8 @@ class ExternalData:
 
         Args:
                 csv_dirs (list): Path to CSV dirs
-                ticker (str): ticker name
-                field_mappins (list): Mappings to rename csv field names
+                filenames (list): ticker file name
+                field_mappins (dict): Mappings to rename csv field names
                 date_column (str): Name of the date column in csv file
 
         Returns:
@@ -46,24 +46,26 @@ class ExternalData:
         """
         with Halo(text='Gettng dirs', spinner='arrow3') as halo_log:
             csv_dfs = []
-            halo_log.text=f'Fetching data for {ticker}'
+            halo_log.text=f'Fetching data from csv files'
             for csv_dir in csv_dirs:
-                halo_log.text=f'Fetching data for {ticker} -> checking: {csv_dir}'
-                price_file_name = f'{ticker}.csv'
-                try:
-                    csv_df = self._get_single_csv(
-                        file_name=csv_dir/pathlib.Path(price_file_name),
-                        date_column=date_column,
-                        field_mappins=field_mappins
-                    )
-                except Exception as e:
-                    logging.error(e)
-                if not csv_df.empty:
-                    csv_dfs.append(csv_df)
+                for filename in filenames:
+                    csv_file = pathlib.Path(csv_dir, filename)
+                    if csv_file.is_file():
+                        halo_log.text=f'Fetching data from {csv_dir} -> checking: {csv_file}'
+                        try:
+                            csv_df = self._get_single_csv(
+                                file_name=csv_file,
+                                date_column=date_column,
+                                field_mappins=field_mappins
+                            )
+                        except Exception as e:
+                            logging.error(e)
+                        if not csv_df.empty:
+                            csv_dfs.append(csv_df)
         if csv_dfs:
-            concat_df = pd.concat(csv_dfs)
+            concat_df = pd.concat(csv_dfs, axis=1, verify_integrity=True)
         else:
-            raise ValueError(f'No csv data found for {ticker}')
+            raise ValueError(f'No csv data found for {filenames} or other file names')
         return concat_df
 
     def _get_single_csv(
@@ -90,6 +92,7 @@ class ExternalData:
             header=0,
             date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
         )
+        csv_df.sort_values(by=date_column, inplace=True)
         csv_df = csv_df.loc[self.first_day:self.last_day]
         if field_mappins:
             csv_df = csv_df.rename(columns=field_mappins)

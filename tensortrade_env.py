@@ -1,6 +1,7 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from preprocess_data.csv_data import CSVData
 from IPython import get_ipython
 import functools
 import logging
@@ -46,17 +47,30 @@ from tensortrade.agents import DQNAgent
 cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
 symbol_list = settings.TSE_TICKER[0:5]
-base_dirs = ["tickers_data/tse/adjusted/"]
+base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
 price_data_dict = {}
-for symbol in symbol_list:
-    temp_df = cdd.fetch(
-        "tsetmc", "IRR", symbol, "1d", False, base_dirs)
+data_manager = CSVData(
+    start_date = "2018-01-01",
+    end_date = "2020-12-31",
+    csv_dirs = base_dirs,
+    baseline_file_name = "tickers_data/tse/adjusted/شاخص كل6.csv",
+    has_daily_trading_limit = True,
+    use_baseline_data = True,
+)
+for quote_symbol in symbol_list:
+    file_names = [f'{quote_symbol}-ت.csv', f'{quote_symbol}.csv']
+    temp_df = data_manager.process_single_tic(
+        file_names,
+        None,
+        'date'
+    )
     if not temp_df.empty:
-        price_data_dict[symbol] = temp_df
+        price_data_dict[quote_symbol] = temp_df
 
 # %%
-# data.head()
-
+list(price_data_dict.values())[0].head()
+# %%
+list(price_data_dict.values())[0].columns
 # %% [markdown]
 # ## Create features with the feed module
 FMT = '[%(levelname)s] %(message)s'
@@ -107,8 +121,11 @@ for i in range(5):
 # %%
 streams = []
 for symbol in symbol_list:
-    streams.append(
-        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR-{symbol}'))
+    streams.extend([
+        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR-{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['b_queue']), dtype="float").rename(f'b_queue:/IRR-{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['s_queue']), dtype="float").rename(f's_queue:/IRR-{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['stopped']), dtype="float").rename(f'stopped:/IRR-{symbol}')])
 tsetmc = Exchange("tsetmc", service=execute_order)(
     *streams
 )
