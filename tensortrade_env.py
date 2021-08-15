@@ -1,6 +1,15 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from typing import List
+from tensortrade.env.default.actions import ManagedRiskOrders
+from tensortrade.oms.instruments.exchange_pair import ExchangePair
+from tensortrade.oms.instruments.quantity import Quantity
+from tensortrade.oms.orders.create import risk_managed_order
+from tensortrade.oms.orders.criteria import Criteria, Stop
+from tensortrade.oms.orders.order import Order
+from tensortrade.oms.orders.order_spec import OrderSpec
+from tensortrade.oms.orders.trade import TradeSide, TradeType
 from preprocess_data.csv_data import CSVData
 from IPython import get_ipython
 import functools
@@ -122,10 +131,10 @@ for i in range(5):
 streams = []
 for symbol in symbol_list:
     streams.extend([
-        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR-{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['b_queue']), dtype="float").rename(f'b_queue:/IRR-{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['s_queue']), dtype="float").rename(f's_queue:/IRR-{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['stopped']), dtype="float").rename(f'stopped:/IRR-{symbol}')])
+        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR/{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['b_queue']), dtype="float").rename(f'bqueue-IRR/{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['s_queue']), dtype="float").rename(f'squeue-IRR/{symbol}'),
+        Stream.source(list(price_data_dict[symbol]['stopped']), dtype="float").rename(f'stopped-IRR/{symbol}')])
 tsetmc = Exchange("tsetmc", service=execute_order)(
     *streams
 )
@@ -141,17 +150,154 @@ wallet_list.append(Wallet(tsetmc, 10000000 * IRR))
 
 portfolio = Portfolio(IRR, wallet_list)
 
+# %% [markdown]
+# ## Create the action scheme with daily trading limit.
+
+class DailyTL(Criteria):
+    """An order criteria that allows execution when daily trading limit allows.
+    """
+
+    def check(self, order: 'Order', exchange: 'Exchange') -> bool:
+        b_queue = exchange._price_streams[f'bqueue/{order.pair}']
+        s_queue = exchange._price_streams[f'squeue/{order.pair}']
+        stopped = exchange._price_streams[f'stopped/{order.pair}']
+        buy_satisfied = (order.side == TradeSide.BUY and not b_queue)
+        sell_satisfied = (order.side == TradeSide.SELL and not s_queue)
+
+        return (buy_satisfied or sell_satisfied) and not stopped
+
+    def __str__(self) -> str:
+        return f"<Limit: price={self.limit_price}>"
+
+def risk_managed_dtl_order(side: "TradeSide",
+                       trade_type: "TradeType",
+                       exchange_pair: "ExchangePair",
+                       price: float,
+                       quantity: "Quantity",
+                       down_percent: float,
+                       up_percent: float,
+                       portfolio: "Portfolio",
+                       start: int = None,
+                       end: int = None):
+    """Create a stop order that manages for percentages above and below the
+    entry price of the order.
+
+    Parameters
+    ----------
+    side : `TradeSide`
+        The side of the order.
+    trade_type : `TradeType`
+        The type of trade to make when going in.
+    exchange_pair : `ExchangePair`
+        The exchange pair to perform the order for.
+    price : float
+        The current price.
+    down_percent: float
+        The percentage the price is allowed to drop before exiting.
+    up_percent : float
+        The percentage the price is allowed to rise before exiting.
+    quantity : `Quantity`
+        The quantity of the order.
+    portfolio : `Portfolio`
+        The portfolio being used in the order.
+    start : int, optional
+        The start time of the order.
+    end : int, optional
+        The end time of the order.
+
+    Returns
+    -------
+    `Order`
+        A stop order controlling for the percentages above and below the entry
+        price.
+    """
+
+    side = TradeSide(side)
+    instrument = side.instrument(exchange_pair.pair)
+
+    order = Order(
+        step=portfolio.clock.step,
+        side=side,
+        trade_type=TradeType(trade_type),
+        exchange_pair=exchange_pair,
+        price=price,
+        start=start,
+        end=end,
+        quantity=quantity,
+        portfolio=portfolio,
+        criteria=DailyTL()
+    )
+
+    criteria = (Stop("down", down_percent) ^ Stop("up", up_percent)) & DailyTL()
+    risk_management = OrderSpec(
+        side=TradeSide.SELL if side == TradeSide.BUY else TradeSide.BUY,
+        trade_type=TradeType.MARKET,
+        exchange_pair=exchange_pair,
+        criteria=criteria
+    )
+
+    order.add_order_spec(risk_management)
+
+    return order
+
+
+class DailyTLOrders(ManagedRiskOrders):
+    """A discrete action scheme for markets with daily trading limits
+    based on "ManagedRiskOrders" from tensortrade.
+    """
+    
+    def get_orders(self, action: int, portfolio: 'Portfolio') -> 'List[Order]':
+
+        if action == 0:
+            return []
+
+        (ep, (stop, take, proportion, duration, side)) = self.actions[action]
+
+        side = TradeSide(side)
+
+        instrument = side.instrument(ep.pair)
+        wallet = portfolio.get_wallet(ep.exchange.id, instrument=instrument)
+
+        balance = wallet.balance.as_float()
+        size = (balance * proportion)
+        size = min(balance, size)
+        quantity = (size * instrument).quantize()
+
+        if size < 10 ** -instrument.precision \
+                or size < self.min_order_pct * portfolio.net_worth \
+                or size < self.min_order_abs:
+            return []
+
+        params = {
+            'side': side,
+            'exchange_pair': ep,
+            'price': ep.price,
+            'quantity': quantity,
+            'down_percent': stop,
+            'up_percent': take,
+            'portfolio': portfolio,
+            'trade_type': self._trade_type,
+            'end': self.clock.step + duration if duration else None
+        }
+
+        order = risk_managed_dtl_order(**params)
+
+        if self._order_listener is not None:
+            order.attach(self._order_listener)
+
+        return [order]
+
+dtl_action_scheme = DailyTLOrders()
 # %%
 
 env = default.create(
     portfolio=portfolio,
-    action_scheme="managed-risk",
+    action_scheme=dtl_action_scheme,
     reward_scheme="risk-adjusted",
     feed=feed,
     renderer=default.renderers.ScreenLogger(),
     window_size=20
 )
-
 
 # %%
 env.observer.feed.next()
