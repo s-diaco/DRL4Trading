@@ -1,7 +1,10 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from itertools import product
 from typing import List
+from gym.spaces.discrete import Discrete
+from gym.spaces.space import Space
 from tensortrade.env.default.actions import ManagedRiskOrders
 from tensortrade.oms.instruments.exchange_pair import ExchangePair
 from tensortrade.oms.instruments.quantity import Quantity
@@ -162,9 +165,15 @@ class DailyTL(Criteria):
     """
 
     def check(self, order: 'Order', exchange: 'Exchange') -> bool:
-        b_queue = exchange._price_streams[f'bqueue/{order.pair}'].value
-        s_queue = exchange._price_streams[f'squeue/{order.pair}'].value
-        stopped = exchange._price_streams[f'stopped/{order.pair}'].value
+        b_queue = Stream.select(
+            exchange.streams(),
+            lambda s: s.name == f'{exchange.name}:/bqueue-{order.pair}').value
+        s_queue = Stream.select(
+            exchange.streams(),
+            lambda s: s.name == f'{exchange.name}:/squeue-{order.pair}').value
+        stopped = Stream.select(
+            exchange.streams(),
+            lambda s: s.name == f'{exchange.name}:/stopped-{order.pair}').value
         buy_satisfied = (order.side == TradeSide.BUY and not b_queue)
         sell_satisfied = (order.side == TradeSide.SELL and not s_queue)
         dtl_satisfied = (buy_satisfied or sell_satisfied) and not stopped
@@ -246,18 +255,34 @@ def risk_managed_dtl_order(side: "TradeSide",
 
 
 class DailyTLOrders(ManagedRiskOrders):
-    """A discrete action scheme for markets with daily trading limits
-    based on "ManagedRiskOrders" from tensortrade.
     """
-    
+    A discrete action scheme for markets with "Daily Trading Limit" and no
+    "Short Selling". This is based on "ManagedRiskOrders" from tensortrade.
+    """
+    @property
+    def action_space(self) -> 'Space':
+        if not self._action_space:
+            self.actions = product(
+                self.stop,
+                self.take,
+                self.trade_sizes,
+                self.durations,
+            )
+            self.actions = list(self.actions)
+            self.actions = list(product(self.portfolio.exchange_pairs, self.actions))
+            self.actions = [None] + self.actions
+
+            self._action_space = Discrete(len(self.actions))
+        return self._action_space
+
     def get_orders(self, action: int, portfolio: 'Portfolio') -> 'List[Order]':
 
         if action == 0:
             return []
 
-        (ep, (stop, take, proportion, duration, side)) = self.actions[action]
+        (ep, (stop, take, proportion, duration)) = self.actions[action]
 
-        side = TradeSide(side)
+        side = TradeSide.BUY
 
         instrument = side.instrument(ep.pair)
         wallet = portfolio.get_wallet(ep.exchange.id, instrument=instrument)
