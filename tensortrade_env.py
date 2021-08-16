@@ -148,7 +148,11 @@ wallet_list = [Wallet(tsetmc, 0 * instrum_dict[symbol])
                for symbol in symbol_list]
 wallet_list.append(Wallet(tsetmc, 10000000 * IRR))
 
-portfolio = Portfolio(IRR, wallet_list)
+pfolio = Portfolio(IRR, wallet_list)
+
+
+
+
 
 # %% [markdown]
 # ## Create the action scheme with daily trading limit.
@@ -158,13 +162,13 @@ class DailyTL(Criteria):
     """
 
     def check(self, order: 'Order', exchange: 'Exchange') -> bool:
-        b_queue = exchange._price_streams[f'bqueue/{order.pair}']
-        s_queue = exchange._price_streams[f'squeue/{order.pair}']
-        stopped = exchange._price_streams[f'stopped/{order.pair}']
+        b_queue = exchange._price_streams[f'bqueue/{order.pair}'].value
+        s_queue = exchange._price_streams[f'squeue/{order.pair}'].value
+        stopped = exchange._price_streams[f'stopped/{order.pair}'].value
         buy_satisfied = (order.side == TradeSide.BUY and not b_queue)
         sell_satisfied = (order.side == TradeSide.SELL and not s_queue)
-
-        return (buy_satisfied or sell_satisfied) and not stopped
+        dtl_satisfied = (buy_satisfied or sell_satisfied) and not stopped
+        return dtl_satisfied
 
     def __str__(self) -> str:
         return f"<Limit: price={self.limit_price}>"
@@ -291,7 +295,7 @@ dtl_action_scheme = DailyTLOrders()
 # %%
 
 env = default.create(
-    portfolio=portfolio,
+    portfolio=pfolio,
     action_scheme=dtl_action_scheme,
     reward_scheme="risk-adjusted",
     feed=feed,
@@ -312,5 +316,5 @@ agent.train(n_steps=200, n_episodes=3, save_path="agents/")
 
 # %%
 # portfolio.ledger.as_frame().head(20)
-print(portfolio.total_balances)
+print(pfolio.total_balances)
 # %%
