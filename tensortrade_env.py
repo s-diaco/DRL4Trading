@@ -1,6 +1,7 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from tensortrade.feed.core.base import IterableStream
 from envirement.default.actions import DailyTLOrders
 from itertools import product
 from typing import List
@@ -30,7 +31,7 @@ from tf_agents.system import system_multiprocessing as multiprocessing
 from config import settings
 from envirement.trading_py_env import TradingPyEnv
 from models.model_ppo import TradeDRLAgent
-from preprocess_data import preprocess_data
+from preprocess_data import user_features, preprocess_data
 # %% [markdown]
 # ## Install TensorTrade
 
@@ -55,6 +56,11 @@ from tensortrade.agents import DQNAgent
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
+FMT = '[%(levelname)s] %(message)s'
+formatter = logging.Formatter(FMT)
+
+absl_logging.get_absl_handler().setFormatter(formatter)
+absl_logging.set_verbosity('info')
 
 # %%
 cdd = ReadCSV()
@@ -78,48 +84,80 @@ for quote_symbol in symbol_list:
         'date'
     )
     if not temp_df.empty:
-        price_data_dict[quote_symbol] = temp_df
+        price_data_dict[quote_symbol] = Stream.source(temp_df, dtype="float")
 
 # %%
-list(price_data_dict.values())[0].head()
+list(price_data_dict.values())[0].iterable.columns
 # %%
-list(price_data_dict.values())[0].columns
+pd.DataFrame(list(price_data_dict.values())[0].iterable).head()
+
+# %% [markdown]
+# ## Create features
+
+
+def col_from_cls(client_class, data):
+    '''
+    Create "series" from a given function and dataframe
+
+            Parameters:
+                    client_func (callable): function used to create the column
+                    data (pd.DataFrame): data used to calculate new columns
+
+            Returns:
+                    column (pd.Series): calculated column
+
+            Raises:
+                    TypeError: if the column type is not pd.Series
+    '''
+    # TODO check if there are any Nan or inf values in new column
+    column_cls = client_class(data)
+    if isinstance(column_cls, IterableStream):
+        return column_cls
+    else:
+        raise TypeError('Feature class has to inherit "IterableStream"')
+
+def add_user_defined_features(data, user_cols) -> list:
+    '''
+    Add data from functions in 'user_calculated_columns.py'.
+
+            Parameters:
+                    data (pd.DataFrame): data used to calculate new columns
+                    user_cols (list): user class names to use
+
+            Returns:
+                    data (pd.DataFrame): the updated dataframe
+    '''
+    logging.info('Adding custom columns')
+    for col_cls in IterableStream.__subclasses__():
+        cls_name = col_cls.__name__
+        if(col_cls.__module__ == user_features.__name__):
+            if cls_name in user_cols:
+                try:
+                    # add new column to dataframe
+                    new_feature = col_from_cls(col_cls, data)
+                    logging.info(f'Add feature "{str(new_feature)}" ✅')
+                    return new_feature
+                except Exception as e:
+                    logging.info(f'Add column from user class "{cls_name}" '
+                    f'❌: {str(e)}')
+
+
+# %%
 # %% [markdown]
 # ## Create features with the feed module
-FMT = '[%(levelname)s] %(message)s'
-formatter = logging.Formatter(FMT)
-
-absl_logging.get_absl_handler().setFormatter(formatter)
-absl_logging.set_verbosity('info')
-
-# %%
-def rsi(price: Stream[float], period: float) -> Stream[float]:
-    r = price.diff()
-    upside = r.clamp_min(0).abs()
-    downside = r.clamp_max(0).abs()
-    rs = upside.ewm(alpha=1 / period).mean() / \
-        downside.ewm(alpha=1 / period).mean()
-    return 100*(1 - (1 + rs) ** -1)
-
-
-def macd(price: Stream[float], fast: float, slow: float, signal: float) -> Stream[float]:
-    fm = price.ewm(span=fast, adjust=False).mean()
-    sm = price.ewm(span=slow, adjust=False).mean()
-    md = fm - sm
-    signal = md - md.ewm(span=signal, adjust=False).mean()
-    return signal
 
 # %%
 features = []
+for quote_stream in price_data_dict.values():
+    features.extend(add_user_defined_features(quote_stream, ['MA', 'EMA', 'SMA', 'ChangeStream']))
+    
+
+# %%
 for symbol in symbol_list:
-    cp = Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'close:/IRR-{symbol}')
-
+    cp = Stream.source(pd.DataFrame(price_data_dict[symbol].iterable).close, dtype="float").rename(f'close:/IRR-{symbol}')
     features += [
-        cp.log().diff().rename(f'lr:/IRR-{symbol}'),
-        rsi(cp, period=20).rename(f'rsi:/IRR-{symbol}'),
-        macd(cp, fast=10, slow=50, signal=5).rename(f'macd:/IRR-{symbol}')
+        cp.log().diff().rename(f'lr:/IRR-{symbol}')
     ]
-
 feed = DataFeed(features)
 feed.compile()
 
