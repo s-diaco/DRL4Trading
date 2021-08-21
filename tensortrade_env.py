@@ -190,10 +190,14 @@ agent = DQNAgent(env)
 agent.train(n_steps=200, n_episodes=2, save_path="agents/")
 
 # %%
+agent.restore("agents/")
+
+# %%
 # portfolio.ledger.as_frame().head(20)
 for instr in pfolio.total_balances:
     print(f'- {instr}')
 # %%
+agent = DQNAgent.load("agents/")
 action = agent.get_action(env.reset())
 env.action_scheme.get_orders(action, pfolio)
 
