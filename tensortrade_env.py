@@ -1,6 +1,7 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from preprocess_data.add_user_features import add_features
 from tensortrade.feed.core.base import IterableStream
 from envirement.default.actions import DailyTLOrders
 from itertools import product
@@ -69,12 +70,12 @@ symbol_list = settings.TSE_TICKER[0:5]
 base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
 price_data_dict = {}
 data_manager = CSVData(
-    start_date = "2018-01-01",
-    end_date = "2020-12-31",
-    csv_dirs = base_dirs,
-    baseline_file_name = "tickers_data/tse/adjusted/شاخص كل6.csv",
-    has_daily_trading_limit = True,
-    use_baseline_data = True,
+    start_date="2018-01-01",
+    end_date="2020-12-31",
+    csv_dirs=base_dirs,
+    baseline_file_name="tickers_data/tse/adjusted/شاخص كل6.csv",
+    has_daily_trading_limit=True,
+    use_baseline_data=True,
 )
 for quote_symbol in symbol_list:
     file_names = [f'{quote_symbol}-ت.csv', f'{quote_symbol}.csv']
@@ -94,73 +95,34 @@ pd.DataFrame(list(price_data_dict.values())[0].iterable).head()
 # %% [markdown]
 # ## Create features
 
-
-def col_from_cls(client_class, data):
-    '''
-    Create "series" from a given function and dataframe
-
-            Parameters:
-                    client_func (callable): function used to create the column
-                    data (pd.DataFrame): data used to calculate new columns
-
-            Returns:
-                    column (pd.Series): calculated column
-
-            Raises:
-                    TypeError: if the column type is not pd.Series
-    '''
-    # TODO check if there are any Nan or inf values in new column
-    column_cls = client_class(data)
-    if isinstance(column_cls, IterableStream):
-        return column_cls
-    else:
-        raise TypeError('Feature class has to inherit "IterableStream"')
-
-def add_user_defined_features(data, user_cols) -> list:
-    '''
-    Add data from functions in 'user_calculated_columns.py'.
-
-            Parameters:
-                    data (pd.DataFrame): data used to calculate new columns
-                    user_cols (list): user class names to use
-
-            Returns:
-                    data (pd.DataFrame): the updated dataframe
-    '''
-    logging.info('Adding custom columns')
-    for col_cls in IterableStream.__subclasses__():
-        cls_name = col_cls.__name__
-        if(col_cls.__module__ == user_features.__name__):
-            if cls_name in user_cols:
-                try:
-                    # add new column to dataframe
-                    new_feature = col_from_cls(col_cls, data)
-                    logging.info(f'Add feature "{str(new_feature)}" ✅')
-                    return new_feature
-                except Exception as e:
-                    logging.info(f'Add column from user class "{cls_name}" '
-                    f'❌: {str(e)}')
-
-
 # %%
 # %% [markdown]
 # ## Create features with the feed module
 
 # %%
 features = []
-for quote_stream in price_data_dict.values():
-    features.extend(add_user_defined_features(quote_stream, ['MA', 'EMA', 'SMA', 'ChangeStream']))
-    
+candid_features = [
+    'MA', 'EMA', 'SMA', 'ChangeStream', 'DailyVarianceStream',
+    'SMARatioIndStream', 'VolumeSMARatioStream', 'CountSMARatioStream',
+    'IndvBSRatioStream', 'CorpBSRatioStream', 'IndCorpBRatioStream',
+    'RSIIndicatorStream']
+for quote_stream in price_data_dict:
+    features.extend(
+        add_features(
+            quote_stream,
+            price_data_dict[quote_stream],
+            candid_features))
 
 # %%
 for symbol in symbol_list:
-    cp = Stream.source(pd.DataFrame(price_data_dict[symbol].iterable).close, dtype="float").rename(f'close:/IRR-{symbol}')
+    cp = Stream.source(pd.DataFrame(
+        price_data_dict[symbol].iterable).close,
+        dtype="float").rename(f'close:/IRR-{symbol}')
     features += [
         cp.log().diff().rename(f'lr:/IRR-{symbol}')
     ]
 feed = DataFeed(features)
 feed.compile()
-
 
 # %%
 for i in range(5):
@@ -173,10 +135,19 @@ for i in range(5):
 streams = []
 for symbol in symbol_list:
     streams.extend([
-        Stream.source(list(price_data_dict[symbol]['close']), dtype="float").rename(f'IRR/{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['b_queue']), dtype="float").rename(f'bqueue-IRR/{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['s_queue']), dtype="float").rename(f'squeue-IRR/{symbol}'),
-        Stream.source(list(price_data_dict[symbol]['stopped']), dtype="float").rename(f'stopped-IRR/{symbol}')])
+        Stream.source(
+            pd.DataFrame(price_data_dict[symbol].iterable).close,
+            dtype="float").rename(f'IRR/{symbol}'),
+        Stream.source(
+            pd.DataFrame(price_data_dict[symbol].iterable).b_queue,
+            dtype="float").rename(f'bqueue-IRR/{symbol}'),
+        Stream.source(
+            pd.DataFrame(price_data_dict[symbol].iterable).s_queue,
+            dtype="float").rename(f'squeue-IRR/{symbol}'),
+        Stream.source(
+            pd.DataFrame(price_data_dict[symbol].iterable).stopped,
+            dtype="float").rename(f'stopped-IRR/{symbol}')])
+
 tsetmc = Exchange("tsetmc", service=execute_order)(
     *streams
 )
@@ -184,7 +155,8 @@ tsetmc = Exchange("tsetmc", service=execute_order)(
 # %%
 instrum_dict = {}
 for symbol in symbol_list:
-    instrum_dict[symbol] = Instrument(symbol, 2, price_data_dict[symbol]['name'][0])
+    instrum_dict[symbol] = Instrument(symbol, 2, pd.DataFrame(
+        price_data_dict[symbol].iterable).name[0])
 
 wallet_list = [Wallet(tsetmc, 0 * instrum_dict[symbol])
                for symbol in symbol_list]
@@ -215,9 +187,14 @@ env.observer.feed.next()
 # %%
 agent = DQNAgent(env)
 
-agent.train(n_steps=200, n_episodes=3, save_path="agents/")
+agent.train(n_steps=200, n_episodes=2, save_path="agents/")
 
 # %%
 # portfolio.ledger.as_frame().head(20)
-print(pfolio.total_balances)
+for instr in pfolio.total_balances:
+    print(f'- {instr}')
+# %%
+action = agent.get_action(env.reset())
+env.action_scheme.get_orders(action, pfolio)
+
 # %%
