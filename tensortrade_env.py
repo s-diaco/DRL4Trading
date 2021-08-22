@@ -191,6 +191,11 @@ agent.train(n_steps=200, n_episodes=2, save_path="agents/")
 
 # %%
 agent.restore("agents/")
+# %%
+# See the model weights to inspect the training progress
+for layer in agent.target_network.layers:
+    weights = layer.get_weights()
+print(weights[0])
 
 # %%
 # portfolio.ledger.as_frame().head(20)
