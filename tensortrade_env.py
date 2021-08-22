@@ -190,7 +190,8 @@ agent = DQNAgent(env)
 agent.train(n_steps=200, n_episodes=2, save_path="agents/")
 
 # %%
-agent.restore("agents/")
+agent.restore("agents/policy_network__9ca027a__20210822_182716.hdf5")
+# agent.policy_network.load_weights("agents/policy_network__9ca027a__20210822_182716.hdf5")
 # %%
 # See the model weights to inspect the training progress
 for layer in agent.target_network.layers:
@@ -202,7 +203,6 @@ print(weights[0])
 for instr in pfolio.total_balances:
     print(f'- {instr}')
 # %%
-agent = DQNAgent.load("agents/")
 action = agent.get_action(env.reset())
 env.action_scheme.get_orders(action, pfolio)
 
