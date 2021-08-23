@@ -61,7 +61,7 @@ absl_logging.set_verbosity('info')
 # %%
 cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
-symbol_list = settings.TSE_TICKER[0:5]
+symbol_list = settings.TSE_TICKER # settings.TSE_TICKER[0:5]
 base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
 price_data_dict = {}
 data_manager = CSVData(
@@ -143,7 +143,11 @@ pfolio = Portfolio(IRR, wallet_list)
 
 # %% [markdown]
 # ## Create the action scheme with daily trading limit.
-dtl_action_scheme = DailyTLOrders()
+dtl_action_scheme = DailyTLOrders(
+    stop = [0.10],
+    take = [0.40],
+    trade_sizes = 5
+)
 # %%
 
 env = default.create(
@@ -162,7 +166,7 @@ env.observer.feed.next()
 # ## Setup and Train DQN Agent
 # %%
 agent = DQNAgent(env)
-agent.train(n_steps=200, n_episodes=2, save_path="agents/")
+agent.train(n_steps=300, n_episodes=20, save_path="agents/")
 
 # %%
 list_of_files = glob.glob('agents/*.hdf5')
