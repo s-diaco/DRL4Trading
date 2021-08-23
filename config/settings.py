@@ -45,8 +45,8 @@ BASELINE_FIELD_MAPPINGS = {
 }
 
 ## time_fmt = '%Y-%m-%d'
-START_TRAIN_DATE = "2015-01-01"
-END_TRAIN_DATE = "2018-12-02"
+START_TRAIN_DATE = "2018-01-01"
+END_TRAIN_DATE = "2020-12-31"
 
 START_TRADE_DATE = "2019-01-01"
 END_TRADE_DATE = "2020-06-01"
@@ -65,8 +65,10 @@ DATA_COLUMNS = ["change", "stopped", "b_queue", "s_queue",
                 "count_ma_ratio", "ma_ratio", "indv_buy_sell_ratio",
                 "corp_buy_sell_ratio", "ind_corp_buy_ratio", "sma_ratio"]
 
-USER_DEFINED_FEATURES = ["ChangeCol", "DailyVarianceCol",
-    "SMARatioIndicator", "RSIIndicatorCol"]
+USER_DEFINED_FEATURES = ['ChangeStream', 'DailyVarianceStream',
+    'SMARatioIndStream', 'VolumeSMARatioStream', 'CountSMARatioStream',
+    'IndvBSRatioStream', 'CorpBSRatioStream', 'IndCorpBRatioStream',
+    'RSIIndicatorStream']
 
 ########################################################
 ############## Stock Ticker Setup starts ##############

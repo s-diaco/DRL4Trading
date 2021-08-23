@@ -1,59 +1,53 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-from preprocess_data.add_user_features import add_features
-from tensortrade.feed.core.base import IterableStream
-from envirement.default.actions import DailyTLOrders
-from itertools import product
-from typing import List
+import functools
+import glob
+import logging
+import os
+
+import pandas as pd
+import tensorflow as tf
+import tensortrade.env.default as default
+from absl import app
+from absl import logging as absl_logging
 from gym.spaces.discrete import Discrete
 from gym.spaces.space import Space
+from IPython import get_ipython
+from numpy.lib.utils import source
+from tensortrade.agents import DQNAgent
 from tensortrade.env.default.actions import ManagedRiskOrders
+from tensortrade.feed.core import DataFeed, Stream
+from tensortrade.feed.core.base import IterableStream
+from tensortrade.oms import instruments
+from tensortrade.oms.exchanges import Exchange
+from tensortrade.oms.instruments import AAPL, BTC, ETH, MSFT, TSLA, USD
 from tensortrade.oms.instruments.exchange_pair import ExchangePair
+from tensortrade.oms.instruments.instrument import Instrument
 from tensortrade.oms.instruments.quantity import Quantity
 from tensortrade.oms.orders.create import risk_managed_order
 from tensortrade.oms.orders.criteria import Criteria, Stop
 from tensortrade.oms.orders.order import Order
 from tensortrade.oms.orders.order_spec import OrderSpec
 from tensortrade.oms.orders.trade import TradeSide, TradeType
-from preprocess_data.csv_data import CSVData
-from IPython import get_ipython
-import functools
-import logging
-from numpy.lib.utils import source
-
-import tensorflow as tf
-from absl import app
-from absl import logging as absl_logging
-from tensortrade.oms import instruments
-from tensortrade.oms.instruments.instrument import Instrument
+from tensortrade.oms.services.execution.simulated import execute_order
+from tensortrade.oms.wallets import Portfolio, Wallet
 from tf_agents.system import system_multiprocessing as multiprocessing
 
 from config import settings
+from envirement.default.actions import DailyTLOrders
 from envirement.trading_py_env import TradingPyEnv
 from models.model_ppo import TradeDRLAgent
-from preprocess_data import user_features, preprocess_data
+from preprocess_data import preprocess_data, user_features
+from preprocess_data.add_user_features import add_features
+from preprocess_data.csv_data import CSVData
+from preprocess_data.read_csv import ReadCSV
+
 # %% [markdown]
 # ## Install TensorTrade
 
 # %%
 # get_ipython().system('python3 -m pip install git+https://github.com/tensortrade-org/tensortrade.git')
-
-# %% [markdown]
-# ## Setup Data Fetching
-
-# %%
-import pandas as pd
-import tensortrade.env.default as default
-
-from preprocess_data.read_csv import ReadCSV
-from tensortrade.feed.core import Stream, DataFeed
-from tensortrade.oms.exchanges import Exchange
-from tensortrade.oms.services.execution.simulated import execute_order
-from tensortrade.oms.instruments import AAPL, MSFT, TSLA, USD, BTC, ETH
-from tensortrade.oms.wallets import Wallet, Portfolio
-from tensortrade.agents import DQNAgent
-
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -62,7 +56,8 @@ formatter = logging.Formatter(FMT)
 
 absl_logging.get_absl_handler().setFormatter(formatter)
 absl_logging.set_verbosity('info')
-
+# %% [markdown]
+# ## Setup Data Fetching
 # %%
 cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
@@ -70,8 +65,8 @@ symbol_list = settings.TSE_TICKER[0:5]
 base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
 price_data_dict = {}
 data_manager = CSVData(
-    start_date="2018-01-01",
-    end_date="2020-12-31",
+    start_date=settings.START_TRAIN_DATE,
+    end_date=settings.END_TRAIN_DATE,
     csv_dirs=base_dirs,
     baseline_file_name="tickers_data/tse/adjusted/شاخص كل6.csv",
     has_daily_trading_limit=True,
@@ -90,22 +85,12 @@ for quote_symbol in symbol_list:
 # %%
 list(price_data_dict.values())[0].iterable.columns
 # %%
-pd.DataFrame(list(price_data_dict.values())[0].iterable).head()
+pd.DataFrame(list(price_data_dict.values())[0].iterable).head(2)
 
-# %% [markdown]
-# ## Create features
-
-# %%
 # %% [markdown]
 # ## Create features with the feed module
-
-# %%
 features = []
-candid_features = [
-    'MA', 'EMA', 'SMA', 'ChangeStream', 'DailyVarianceStream',
-    'SMARatioIndStream', 'VolumeSMARatioStream', 'CountSMARatioStream',
-    'IndvBSRatioStream', 'CorpBSRatioStream', 'IndCorpBRatioStream',
-    'RSIIndicatorStream']
+candid_features = settings.USER_DEFINED_FEATURES
 for quote_stream in price_data_dict:
     features.extend(
         add_features(
@@ -113,19 +98,11 @@ for quote_stream in price_data_dict:
             price_data_dict[quote_stream],
             candid_features))
 
-# %%
-for symbol in symbol_list:
-    cp = Stream.source(pd.DataFrame(
-        price_data_dict[symbol].iterable).close,
-        dtype="float").rename(f'close:/IRR-{symbol}')
-    features += [
-        cp.log().diff().rename(f'lr:/IRR-{symbol}')
-    ]
 feed = DataFeed(features)
 feed.compile()
 
 # %%
-for i in range(5):
+for i in range(3):
     print(feed.next())
 
 # %% [markdown]
@@ -183,18 +160,20 @@ env.observer.feed.next()
 
 # %% [markdown]
 # ## Setup and Train DQN Agent
-
 # %%
 agent = DQNAgent(env)
-
 agent.train(n_steps=200, n_episodes=2, save_path="agents/")
 
 # %%
-agent.restore("agents/policy_network__9ca027a__20210822_182716.hdf5")
-# agent.policy_network.load_weights("agents/policy_network__9ca027a__20210822_182716.hdf5")
+list_of_files = glob.glob('agents/*.hdf5')
+latest_file = max(list_of_files, key=os.path.getctime)
+logging.info(f'Loading weights from {latest_file}')
+restored_agent = DQNAgent(env)
+restored_agent.restore(latest_file)
+# agent.policy_network.load_weights(latest_file)
 # %%
 # See the model weights to inspect the training progress
-for layer in agent.target_network.layers:
+for layer in agent.policy_network.layers:
     weights = layer.get_weights()
 print(weights[0])
 

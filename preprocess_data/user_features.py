@@ -15,13 +15,10 @@ section of the settings file (config/settings.py).
 - List of columns is shown in log before trainig or predicting start.
 """
 
-from typing import Iterable
-
 import pandas as pd
 from ta.momentum import RSIIndicator
-from tensortrade.feed.core.base import IterableStream, Stream
+from tensortrade.feed.core.base import IterableStream
 
-from preprocess_data import custom_col_base
 from preprocess_data.custom_columns_helper import divide_array as div_arr
 from preprocess_data.custom_columns_helper import sma_ratio
 
