@@ -21,6 +21,7 @@ from tensortrade.feed.core import DataFeed, Stream
 from tensortrade.feed.core.base import IterableStream
 from tensortrade.oms import instruments
 from tensortrade.oms.exchanges import Exchange
+from tensortrade.oms.exchanges.exchange import ExchangeOptions
 from tensortrade.oms.instruments import AAPL, BTC, ETH, MSFT, TSLA, USD
 from tensortrade.oms.instruments.exchange_pair import ExchangePair
 from tensortrade.oms.instruments.instrument import Instrument
@@ -125,7 +126,8 @@ for symbol in symbol_list:
             pd.DataFrame(price_data_dict[symbol].iterable).stopped,
             dtype="float").rename(f'stopped-IRR/{symbol}')])
 
-tsetmc = Exchange("tsetmc", service=execute_order)(
+exchange_options = ExchangeOptions(commission=6.3e-3, max_trade_price=1e20)
+tsetmc = Exchange("tsetmc", service=execute_order, options=exchange_options)(
     *streams
 )
 
