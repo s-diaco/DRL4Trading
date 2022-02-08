@@ -90,6 +90,7 @@ pd.DataFrame(list(price_data_dict.values())[0].iterable).head(2)
 
 # %% [markdown]
 # ## Create features with the feed module
+# %%
 features = []
 candid_features = settings.USER_DEFINED_FEATURES
 for quote_stream in price_data_dict:
@@ -145,6 +146,7 @@ pfolio = Portfolio(IRR, wallet_list)
 
 # %% [markdown]
 # ## Create the action scheme with daily trading limit.
+# %%
 dtl_action_scheme = DailyTLOrders(
     stop = [0.10],
     take = [0.40],
