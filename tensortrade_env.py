@@ -1,45 +1,28 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-import functools
+# import functools
 import glob
 import logging
 import os
 
 import pandas as pd
-import tensorflow as tf
+# import tensorflow as tf
 import tensortrade.env.default as default
-from absl import app
+# from absl import app
 from absl import logging as absl_logging
-from gym.spaces.discrete import Discrete
-from gym.spaces.space import Space
 from IPython import get_ipython
-from numpy.lib.utils import source
 from tensortrade.agents import DQNAgent
-from tensortrade.env.default.actions import ManagedRiskOrders
 from tensortrade.feed.core import DataFeed, Stream
-from tensortrade.feed.core.base import IterableStream
-from tensortrade.oms import instruments
 from tensortrade.oms.exchanges import Exchange
 from tensortrade.oms.exchanges.exchange import ExchangeOptions
-from tensortrade.oms.instruments import AAPL, BTC, ETH, MSFT, TSLA, USD
-from tensortrade.oms.instruments.exchange_pair import ExchangePair
 from tensortrade.oms.instruments.instrument import Instrument
-from tensortrade.oms.instruments.quantity import Quantity
-from tensortrade.oms.orders.create import risk_managed_order
-from tensortrade.oms.orders.criteria import Criteria, Stop
-from tensortrade.oms.orders.order import Order
-from tensortrade.oms.orders.order_spec import OrderSpec
-from tensortrade.oms.orders.trade import TradeSide, TradeType
 from tensortrade.oms.services.execution.simulated import execute_order
 from tensortrade.oms.wallets import Portfolio, Wallet
-from tf_agents.system import system_multiprocessing as multiprocessing
+# from tf_agents.system import system_multiprocessing as multiprocessing
 
 from config import settings
 from envirement.default.actions import DailyTLOrders
-from envirement.trading_py_env import TradingPyEnv
-from models.model_ppo import TradeDRLAgent
-from preprocess_data import preprocess_data, user_features
 from preprocess_data.add_user_features import add_features
 from preprocess_data.csv_data import CSVData
 from preprocess_data.read_csv import ReadCSV

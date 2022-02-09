@@ -8,3 +8,4 @@
 # - is data normaization needed for other models?
 # - add tic to data columns needs some work
 # - write tests
+# - do we need halo package?
