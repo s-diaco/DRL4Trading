@@ -52,9 +52,12 @@ ARG TF_PACKAGE=tensortrade
 ARG TF_PACKAGE_VERSION=
 RUN python3 -m pip install --no-cache-dir ${TF_PACKAGE}${TF_PACKAGE_VERSION:+==${TF_PACKAGE_VERSION}}
 
+# [Optional] Uncomment this section to install packages from github or other git repo.
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    git
+
 # [Optional] If your pip requirements rarely change, uncomment this section to add them to the image.
-COPY requirements.txt /tmp/pip-tmp/
-RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-    && rm -rf /tmp/pip-tmp
-RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/quantopian/pyfolio.git
-RUN pip3 --disable-pip-version-check --no-cache-dir install git+git://github.com/Glyphack/pytse-client.git
+# COPY requirements.txt /tmp/pip-tmp/
+# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
+#     && rm -rf /tmp/pip-tmp
