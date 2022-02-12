@@ -27,6 +27,8 @@ from preprocess_data.add_user_features import add_features
 from preprocess_data.csv_data import CSVData
 from preprocess_data.read_csv import ReadCSV
 
+import pytse_client as tse
+
 # %% [markdown]
 # ## Install TensorTrade
 
@@ -47,6 +49,8 @@ cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
 symbol_list = settings.TSE_TICKER # settings.TSE_TICKER[0:5]
 base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
+tickers = tse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
+records_dict = tse.download_client_types_records(symbols=symbol_list)
 price_data_dict = {}
 data_manager = CSVData(
     start_date=settings.START_TRAIN_DATE,
