@@ -2,6 +2,7 @@ import pathlib
 import string
 
 import pandas as pd
+import jdatetime
 
 from preprocess_data import add_technical_indicator, fetch_external_data
 from preprocess_data.config import csvconfig as cfg
@@ -140,5 +141,16 @@ class CSVData:
         """
 
         url = cfg.TSE_INDEX_DATA_ADDRESS.format(index)
-        index_df = pd.read_csv(url, names=['jdate', 'index_val'], lineterminator=";", delim_whitespace=True)
+        storage_options = {'User-Agent': 'Mozilla/5.0'}
+        names=['jdate', 'index_val']
+        index_df = pd.read_csv(url,
+                        lineterminator=";",
+                        names=names,
+                        storage_options=storage_options
+                        )
+        # index_df.date = pd.to_datetime(df.date, format="%Y%m%d")
+        index_df[['j_Y', 'j_M', 'j_D']] = index_df['jdate'].str.split('/', 2, expand=True)
+        index_df['date'] = index_df.apply(lambda x: jdatetime.date(int(x['j_Y']), int(x['j_M']), int(x['j_D']), locale='fa_IR').togregorian(), axis=1)
+        index_df = index_df.drop(columns=['j_Y', 'j_M', 'j_D', 'jdate'])
         return index_df
+        
