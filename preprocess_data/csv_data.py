@@ -1,4 +1,5 @@
 import pathlib
+import string
 
 import pandas as pd
 
@@ -131,3 +132,13 @@ class CSVData:
         full_name = out_dir_full / exp_filename
         combined_frame.to_csv(full_name, index=1, encoding="utf-8")
         return combined_frame
+
+    @staticmethod
+    def dl_baseline(index: string = "32097828799138957"):
+        """
+        Get an index using the index unique code
+        """
+
+        url = cfg.TSE_INDEX_DATA_ADDRESS.format(index)
+        index_df = pd.read_csv(url, names=['jdate', 'index_val'], lineterminator=";", delim_whitespace=True)
+        return index_df

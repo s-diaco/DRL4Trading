@@ -29,12 +29,6 @@ from preprocess_data.read_csv import ReadCSV
 
 import pytse_client as tse
 
-# %% [markdown]
-# ## Install TensorTrade
-
-# %%
-# get_ipython().system('python3 -m pip install git+https://github.com/tensortrade-org/tensortrade.git')
-
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
 FMT = '[%(levelname)s] %(message)s'
@@ -48,9 +42,13 @@ absl_logging.set_verbosity('info')
 cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
 symbol_list = settings.TSE_TICKER # settings.TSE_TICKER[0:5]
-base_dirs = ["tickers_data/tse/adjusted/", "tickers_data/tse/client_types/"]
+base_dirs = ["tickers_data/", "client_types_data/"]
 tickers = tse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
-records_dict = tse.download_client_types_records(symbols=symbol_list)
+records_dict = tse.download_client_types_records(symbols=symbol_list, write_to_csv="True")
+# %%
+# todo: change pytse_client -> download.py, Ln55
+baseline_df = CSVData.dl_baseline()
+# %%
 price_data_dict = {}
 data_manager = CSVData(
     start_date=settings.START_TRAIN_DATE,
