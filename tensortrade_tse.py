@@ -47,7 +47,7 @@ tickers = tse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
 records_dict = tse.download_client_types_records(symbols=symbol_list, write_to_csv="True")
 # %%
 # todo: change pytse_client -> download.py, Ln55
-baseline_df = CSVData.dl_baseline()
+baseline_df = CSVData.dl_baseline(index="شاخص کل", base_path="tickers_data/")
 # %%
 price_data_dict = {}
 data_manager = CSVData(

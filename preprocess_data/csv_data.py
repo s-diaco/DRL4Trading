@@ -1,5 +1,6 @@
 import pathlib
 import string
+import json
 
 import pandas as pd
 import jdatetime
@@ -135,22 +136,40 @@ class CSVData:
         return combined_frame
 
     @staticmethod
-    def dl_baseline(index: string = "32097828799138957"):
+    def dl_baseline(index: string = "32097828799138957", base_path: string = "baseline_data/") -> pd.DataFrame:
         """
-        Get an index using the index unique code
+        Get a TSE index historical data as a dataframe
         """
 
-        url = cfg.TSE_INDEX_DATA_ADDRESS.format(index)
+        index_name = index
+        index_code = index
+        with open('preprocess_data/config/tse_indexes.json', 'r', encoding="utf8") as json_data:
+            tse_indexes = json.load(json_data)
+            if index.isnumeric():
+                for index_info in tse_indexes:
+                    if tse_indexes[index_info]['index'] == index:
+                        index_name = index_info
+            else:
+                index_code = tse_indexes[index]['index']
+
+        url = cfg.TSE_INDEX_DATA_ADDRESS.format(index_code)
         storage_options = {'User-Agent': 'Mozilla/5.0'}
-        names=['jdate', 'index_val']
+        names = ['j_date', 'index_val']
         index_df = pd.read_csv(url,
-                        lineterminator=";",
-                        names=names,
-                        storage_options=storage_options
-                        )
+                               lineterminator=";",
+                               names=names,
+                               storage_options=storage_options
+                               )
         # index_df.date = pd.to_datetime(df.date, format="%Y%m%d")
-        index_df[['j_Y', 'j_M', 'j_D']] = index_df['jdate'].str.split('/', 2, expand=True)
-        index_df['date'] = index_df.apply(lambda x: jdatetime.date(int(x['j_Y']), int(x['j_M']), int(x['j_D']), locale='fa_IR').togregorian(), axis=1)
-        index_df = index_df.drop(columns=['j_Y', 'j_M', 'j_D', 'jdate'])
+        index_df[['j_Y', 'j_M', 'j_D']] = index_df['j_date'].str.split(
+            '/', 2, expand=True).astype(int)
+        index_df['date'] = index_df.apply(lambda x: jdatetime.date(
+            x['j_Y'], x['j_M'], x['j_D'], locale='fa_IR').togregorian(), axis=1)
+        # pylint: disable=E1101
+        index_df = index_df.drop(columns=['j_Y', 'j_M', 'j_D'])
+        index_df.to_csv(
+            f'{base_path}/{index_name}.csv',
+            index=False
+        )
         return index_df
         
