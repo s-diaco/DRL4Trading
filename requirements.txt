@@ -1,4 +1,3 @@
 ipykernel
 ta
 stockstats
-halo
