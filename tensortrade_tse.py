@@ -1,5 +1,6 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
+
 # %%
 # import functools
 import glob
@@ -11,7 +12,7 @@ import pandas as pd
 import tensortrade.env.default as default
 # from absl import app
 from absl import logging as absl_logging
-from IPython import get_ipython
+# from IPython import get_ipython
 from tensortrade.agents import DQNAgent
 from tensortrade.feed.core import DataFeed, Stream
 from tensortrade.oms.exchanges import Exchange
@@ -21,11 +22,11 @@ from tensortrade.oms.services.execution.simulated import execute_order
 from tensortrade.oms.wallets import Portfolio, Wallet
 # from tf_agents.system import system_multiprocessing as multiprocessing
 
-from config import settings
-from envirement.default.actions import DailyTLOrders
-from preprocess_data.add_user_features import add_features
-from preprocess_data.csv_data import CSVData
-from preprocess_data.read_csv import ReadCSV
+from src.drl4trading.config import settings
+from src.drl4trading.envirement.default.actions import DailyTLOrders
+from src.drl4trading.preprocess_data.add_user_features import add_features
+from src.drl4trading.preprocess_data.csv_data import CSVData
+from src.drl4trading.preprocess_data.read_csv import ReadCSV
 
 import pytse_client as tse
 

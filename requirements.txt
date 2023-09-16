@@ -1,3 +1,6 @@
-ipykernel
+# ipykernel
 ta
 stockstats
+tensortrade
+pytse_client
+halo

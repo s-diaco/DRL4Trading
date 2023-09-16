@@ -5,7 +5,7 @@ from tensortrade.oms.orders.order import Order
 from tensortrade.oms.orders.order_spec import OrderSpec
 from tensortrade.oms.instruments.exchange_pair import ExchangePair
 from tensortrade.oms.wallets.portfolio import Portfolio
-from oms.orders.criteria import DailyTL
+from src.drl4trading.oms.orders.criteria import DailyTL
 
 def risk_managed_dtl_order(side: "TradeSide",
                        trade_type: "TradeType",

@@ -2,7 +2,7 @@ import logging
 
 from tensortrade.feed.core.base import IterableStream
 
-from preprocess_data import user_features
+from src.drl4trading.preprocess_data import user_features
 
 
 def col_from_cls(feat_class, data):

@@ -22,7 +22,9 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.black-formatter",
-				"ms-python.vscode-pylance"
+				"ms-python.vscode-pylance",
+				"ms-toolsai.jupyter",
+				"ms-python.isort"
 			]
 		}
 	}

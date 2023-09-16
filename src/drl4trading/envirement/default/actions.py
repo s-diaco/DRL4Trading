@@ -1,11 +1,11 @@
 from itertools import product
 
-from tensortrade.oms.wallets.portfolio import Portfolio
-from oms.orders.create import risk_managed_dtl_order
-
+from gym.spaces import Discrete, Space
 from tensortrade.env.default.actions import ManagedRiskOrders
 from tensortrade.oms.orders.trade import TradeSide
-from gym.spaces import Space, Discrete
+from tensortrade.oms.wallets.portfolio import Portfolio
+
+from src.drl4trading.oms.orders.create import risk_managed_dtl_order
 
 
 class DailyTLOrders(ManagedRiskOrders):

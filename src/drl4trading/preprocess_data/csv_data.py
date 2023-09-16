@@ -5,8 +5,8 @@ import json
 import pandas as pd
 import jdatetime
 
-from preprocess_data import add_technical_indicator, fetch_external_data
-from preprocess_data.config import csvconfig as cfg
+from src.drl4trading.preprocess_data import add_technical_indicator, fetch_external_data
+from src.drl4trading.preprocess_data.config import csvconfig as cfg
 
 
 class CSVData:

@@ -3,7 +3,7 @@
 from typing import List
 import pandas as pd
 from tensortrade.data.cdd import CryptoDataDownload
-from preprocess_data.csv_data import CSVData
+from src.drl4trading.preprocess_data.csv_data import CSVData
 
 
 class ReadCSV(CryptoDataDownload):
