@@ -143,9 +143,9 @@ class CSVData:
         Get a TSE index historical data as a dataframe
         """
 
+        index_name = index
         # TODO: fix this
         """
-        index_name = index
         index_code = index
         with open('src/drl4trading/preprocess_data/config/tse_indexes.json', 'r', encoding="utf8") as json_data:
             tse_indexes = json.load(json_data)
@@ -175,7 +175,7 @@ class CSVData:
         index_df = index_df.drop(columns=['j_Y', 'j_M', 'j_D'])
         """
 
-        pytse.FinancialIndex(symbol="شاخص کل").history
+        index_df = pytse.FinancialIndex(symbol="شاخص کل").history
         names = ['date', 'close']
         index_df = index_df[names]
         index_df.to_csv(

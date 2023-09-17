@@ -28,7 +28,7 @@ from src.drl4trading.preprocess_data.add_user_features import add_features
 from src.drl4trading.preprocess_data.csv_data import CSVData
 from src.drl4trading.preprocess_data.read_csv import ReadCSV
 
-import pytse_client as tse
+import pytse_client as pytse
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -44,8 +44,8 @@ cdd = ReadCSV()
 IRR = Instrument('IRR', 2, 'Iranian Rial')
 symbol_list = settings.TSE_TICKER # settings.TSE_TICKER[0:5]
 base_dirs = ["tickers_data/", "client_types_data/"]
-tickers = tse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
-records_dict = tse.download_client_types_records(symbols=symbol_list, write_to_csv="True")
+tickers = pytse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
+records_dict = pytse.download_client_types_records(symbols=symbol_list, write_to_csv=True)
 # %%
 # todo: change pytse_client -> download.py, Ln55
 baseline_df = CSVData.dl_baseline(index="شاخص کل", base_path="tickers_data/")
@@ -62,9 +62,9 @@ data_manager = CSVData(
 for quote_symbol in symbol_list:
     file_names = [f'{quote_symbol}-ت.csv', f'{quote_symbol}.csv']
     temp_df = data_manager.process_single_tic(
-        file_names,
-        None,
-        'date'
+        filenames=file_names,
+        field_mappings={},
+        date_column='date'
     )
     if not temp_df.empty:
         price_data_dict[quote_symbol] = Stream.source(temp_df, dtype="float")

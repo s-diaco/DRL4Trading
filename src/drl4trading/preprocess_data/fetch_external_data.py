@@ -29,7 +29,7 @@ class ExternalData:
     def fetch_from_csv(
         self, csv_dirs: list,
         filenames: list,
-        field_mappins: dict = None,
+        field_mappins: dict = {},
         date_column: str = "date"
     ) -> pd.DataFrame:
         """
@@ -72,7 +72,7 @@ class ExternalData:
         self,
         file_name: pathlib.Path,
         date_column: str = "date",
-        field_mappins: list = None
+        field_mappins: dict = {}
     ) -> pd.DataFrame:
         """
         Fetch data from a csv file
@@ -80,17 +80,18 @@ class ExternalData:
         Args:
                 file_name (pathlib.Path): Path to CSV file
                 date_column (str): Name of the date column in csv file
-                field_mappins (list): Mappings to rename csv field names
+                field_mappins (dict): Mappings to rename csv field names
 
         Returns:
                 pd.DataFrame: Data from csv file
         """
+        
         csv_df = pd.read_csv(
             file_name,
             index_col=date_column,
             parse_dates=[date_column],
             header=0,
-            date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+            date_format="%Y-%m-%d",
         )
         csv_df.sort_values(by=date_column, inplace=True)
         csv_df = csv_df.loc[self.first_day:self.last_day]
@@ -102,7 +103,7 @@ class ExternalData:
     def fetch_baseline_from_csv(
         self, file_name: str,
         date_column: str = "date",
-        field_mappins: list = None
+        field_mappins: dict = {}
     ) -> pd.DataFrame:
         """
         Fetch baseline data from csv file
