@@ -1,11 +1,13 @@
-import pathlib
-import string
 import json
+import pathlib
 
-import pandas as pd
 import jdatetime
+import pandas as pd
+import pytse_client as pytse
 
-from src.drl4trading.preprocess_data import add_technical_indicator, fetch_external_data
+# TODO: fix this and uncomment
+# from src.drl4trading.preprocess_data import add_technical_indicator
+from src.drl4trading.preprocess_data import fetch_external_data
 from src.drl4trading.preprocess_data.config import csvconfig as cfg
 
 
@@ -33,9 +35,9 @@ class CSVData:
         self,
         start_date: str, 
         end_date: str,
-        ticker_list: list = None,
-        csv_dirs: list = None,
-        baseline_file_name: str = None,
+        ticker_list: list = [],
+        csv_dirs: list = [],
+        baseline_file_name: str = "",
         has_daily_trading_limit: bool = False,
         use_baseline_data: bool = False,
         baseline_filed_mappings = None,
@@ -122,7 +124,7 @@ class CSVData:
         combined_frame = pd.DataFrame()
         for tic in self.ticker_list:
             temp_df = self.process_single_tic(
-                ticker=tic,
+                filenames=tic,
                 field_mappings=field_mappings,
                 date_column=date_column
             )
@@ -136,14 +138,16 @@ class CSVData:
         return combined_frame
 
     @staticmethod
-    def dl_baseline(index: string = "32097828799138957", base_path: string = "baseline_data/") -> pd.DataFrame:
+    def dl_baseline(index: str = "32097828799138957", base_path: str = "baseline_data/") -> pd.DataFrame:
         """
         Get a TSE index historical data as a dataframe
         """
 
+        # TODO: fix this
+        """
         index_name = index
         index_code = index
-        with open('preprocess_data/config/tse_indexes.json', 'r', encoding="utf8") as json_data:
+        with open('src/drl4trading/preprocess_data/config/tse_indexes.json', 'r', encoding="utf8") as json_data:
             tse_indexes = json.load(json_data)
             if index.isnumeric():
                 for index_info in tse_indexes:
@@ -160,13 +164,20 @@ class CSVData:
                                names=names,
                                storage_options=storage_options
                                )
+        index_df = pytse.FinancialIndex(symbol="شاخص کل").history
         # index_df.date = pd.to_datetime(df.date, format="%Y%m%d")
         index_df[['j_Y', 'j_M', 'j_D']] = index_df['j_date'].str.split(
             '/', 2, expand=True).astype(int)
         index_df['date'] = index_df.apply(lambda x: jdatetime.date(
             x['j_Y'], x['j_M'], x['j_D'], locale='fa_IR').togregorian(), axis=1)
+        # TODO: is this necessary?
         # pylint: disable=E1101
         index_df = index_df.drop(columns=['j_Y', 'j_M', 'j_D'])
+        """
+
+        pytse.FinancialIndex(symbol="شاخص کل").history
+        names = ['date', 'close']
+        index_df = index_df[names]
         index_df.to_csv(
             f'{base_path}/{index_name}.csv',
             index=False

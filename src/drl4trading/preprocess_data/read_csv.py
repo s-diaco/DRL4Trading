@@ -41,8 +41,8 @@ class ReadCSV(CryptoDataDownload):
         )
         file_name = f'{quote_symbol}-ت'
         df = data_manager.process_single_tic(
-            file_name,
-            None,
+            [file_name],
+            {},
             'date'
         )
         # df = pd.read_csv(base_dir + filename, skiprows=0)

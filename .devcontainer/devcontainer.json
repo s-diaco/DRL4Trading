@@ -24,7 +24,9 @@
 				"ms-python.black-formatter",
 				"ms-python.vscode-pylance",
 				"ms-toolsai.jupyter",
-				"ms-python.isort"
+				"ms-python.isort",
+				"ms-toolsai.jupyter",
+				"ms-python.vscode-pylance"
 			]
 		}
 	}
@@ -42,7 +44,7 @@
 	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt"
+	"postCreateCommand": "pip3 install --user -r requirements.txt"
 
 	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"
