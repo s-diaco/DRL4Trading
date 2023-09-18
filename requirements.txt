@@ -4,3 +4,4 @@ stockstats
 tensortrade
 pytse_client
 halo
+quantstats

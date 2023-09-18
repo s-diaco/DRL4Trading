@@ -1,11 +1,14 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 
+# %% [markdown]
+# ## Import packages
 # %%
 # import functools
 import glob
 import logging
 import os
+import numpy as np
 
 import pandas as pd
 
@@ -42,25 +45,66 @@ formatter = logging.Formatter(FMT)
 absl_logging.get_absl_handler().setFormatter(formatter)
 absl_logging.set_verbosity("info")
 # %% [markdown]
+# ## Define global variables
+# %%
+n_steps = 1000
+n_episodes = 20
+window_size = 30
+memory_capacity = n_steps * 10
+save_path = "agents/"
+n_bins = 5  # Number of bins to partition the dataset evenly in order to evaluate class sparsity.
+seed = 1337
+n_symbols = 5  # Number of symbols to download.
+# %% [markdown]
 # ## Setup Data Fetching
 # %%
-cdd = ReadCSV()
-IRR = Instrument("IRR", 2, "Iranian Rial")
-symbol_list = settings.TSE_TICKER  # settings.TSE_TICKER[0:5]
-base_dirs = ["tickers_data/", "client_types_data/"]
-tickers = pytse.download(symbols=symbol_list, write_to_csv=True, adjust=True)
-records_dict = pytse.download_client_types_records(
-    symbols=symbol_list, write_to_csv=True
-)
+IRR = Instrument("IRR", 0, "Iranian Rial")
+symbol_list = settings.TSE_TICKER[:n_symbols]
+
+pd.options.mode.use_inf_as_na = True
+
+
+def prepare_data(df):
+    df["volume"] = np.int64(df["volume"])
+    df["date"] = pd.to_datetime(df["date"])
+    df.sort_values(by="date", ascending=True, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d %I:%M %p")
+    return df
+
+
+def fetch_data():
+    price_data = pytse.download(
+        symbols=symbol_list, write_to_csv=True, adjust=True, base_path="price_data/"
+    )
+    client_types = pytse.download_client_types_records(
+        symbols=symbol_list, write_to_csv=True, base_path="client_types_data/"
+    )
+    index_data = pytse.download.download_financial_indexes(
+        symbols="شاخص کل", write_to_csv=True, base_path="price_data/"
+    )
+    bitfinex_data = prepare_data(bitfinex_data)
+    return bitfinex_data
+
+
+def load_csv(filename):
+    df = pd.read_csv("data/" + filename, skiprows=1)
+    df.drop(columns=["symbol", "volume_btc"], inplace=True)
+
+    # Fix timestamp from "2019-10-17 09-AM" to "2019-10-17 09-00-00 AM"
+    df["date"] = df["date"].str[:14] + "00-00 " + df["date"].str[-2:]
+
+    return prepare_data(df)
+
+
 # %%
-# todo: change pytse_client -> download.py, Ln55
 baseline_df = CSVData.dl_baseline(index="شاخص کل", base_path="tickers_data/")
 # %%
 price_data_dict = {}
 data_manager = CSVData(
     start_date=settings.START_TRAIN_DATE,
     end_date=settings.END_TRAIN_DATE,
-    csv_dirs=base_dirs,
+    csv_dirs=csv_dirs,
     baseline_file_name="tickers_data/tse/adjusted/شاخص کل.csv",
     has_daily_trading_limit=True,
     use_baseline_data=True,
