@@ -40,7 +40,7 @@ class CSVData:
         baseline_file_name: str = "",
         has_daily_trading_limit: bool = False,
         use_baseline_data: bool = False,
-        baseline_filed_mappings = None,
+        baseline_filed_mappings = {},
         baseline_date_column_name: str = "date"):
         """
         get price data [and add custom]
@@ -176,10 +176,10 @@ class CSVData:
         """
 
         index_df = pytse.FinancialIndex(symbol="شاخص کل").history
-        names = ['date', 'close']
+        names = ['date', 'close', 'volume', 'open']
         index_df = index_df[names]
         index_df.to_csv(
-            f'{base_path}/{index_name}.csv',
+            f'{base_path}tse/adjusted/{index_name}.csv',
             index=False
         )
         return index_df
