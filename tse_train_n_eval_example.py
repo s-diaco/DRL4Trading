@@ -47,7 +47,7 @@ absl_logging.get_absl_handler().setFormatter(formatter)
 absl_logging.set_verbosity("info")
 # %% [markdown]
 # ## Define global variables
-# %%
+
 n_steps = 1000
 n_episodes = 20
 window_size = 30
@@ -56,10 +56,6 @@ save_path = "agents/"
 n_bins = 5  # Number of bins to partition the dataset evenly in order to evaluate class sparsity.
 seed = 1337
 n_symbols = 5  # Number of symbols to download.
-# %% [markdown]
-# ## Setup Data Fetching
-IRR = Instrument("IRR", 0, "Iranian Rial")
-symbols = settings.TSE_TICKER[:n_symbols]
 days_to_dl = 500
 columns_to_dl = [
     # price_data
@@ -97,6 +93,10 @@ columns_to_dl = [
     "close_index",
     "volume_index",
 ]
+# %% [markdown]
+# ## Setup Data Fetching
+IRR = Instrument("IRR", 0, "Iranian Rial")
+symbols = settings.TSE_TICKER[:n_symbols]
 
 pd.options.mode.use_inf_as_na = True
 
