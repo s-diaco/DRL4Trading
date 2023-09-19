@@ -98,8 +98,6 @@ columns_to_dl = [
 IRR = Instrument("IRR", 0, "Iranian Rial")
 symbols = settings.TSE_TICKER[:n_symbols]
 
-pd.options.mode.use_inf_as_na = True
-
 
 def prepare_data(df: pd.DataFrame):
     df.index = pd.DatetimeIndex(df.index)
@@ -178,17 +176,9 @@ import quantstats as qs
 
 qs.extend_pandas()
 
-import os
-import numpy as np
-import ta as ta1
-import pandas_ta as ta
-
-import quantstats as qs
-
-qs.extend_pandas()
-
 
 def fix_dataset_inconsistencies(dataframe: pd.DataFrame, fill_value=None):
+    # dataframe = dataframe.reset_index()
     dataframe = dataframe.replace([-np.inf, np.inf], np.nan)
 
     # This is done to avoid filling middle holes with backfilling.
@@ -199,7 +189,10 @@ def fix_dataset_inconsistencies(dataframe: pd.DataFrame, fill_value=None):
     else:
         dataframe.iloc[0, :] = dataframe.iloc[0, :].fillna(fill_value)
     # TODO: fillna just for index?
-    return dataframe.fillna(axis="index", method="ffill").dropna(axis="columns")
+    dataframe = dataframe.fillna(axis="index", method="pad").dropna(axis="columns")
+    # dataframe = dataframe.set_index("data")
+    # dataframe.index = pd.DatetimeIndex(dataframe.index)
+    return dataframe
 
 
 # TODO: Delete manually created indicators.
@@ -233,6 +226,8 @@ def generate_all_default_quantstats_features(data):
         "r_squared",
         "rolling_greeks",
         "warn",
+        "pct_rank",
+        "treynor_ratio",
     ]
 
     indicators_list = [
@@ -243,7 +238,7 @@ def generate_all_default_quantstats_features(data):
 
     for indicator_name in indicators_list:
         try:
-            # print(indicator_name)
+            print(indicator_name)
             indicator = qs.stats.__dict__[indicator_name](df["close"])
             if isinstance(indicator, pd.Series):
                 indicator = indicator.to_frame(name=indicator_name)
@@ -270,8 +265,9 @@ def generate_features(data: pd.DataFrame):
         "volume",
     ]
 
-    cores = os.cpu_count()
-    df.ta.cores = cores
+    # cores = os.cpu_count()
+    # df.ta.cores = cores
+    df.ta.cores = 0
 
     for strategy in strategies:
         df.ta.study(strategy, exclude=["kvo"])

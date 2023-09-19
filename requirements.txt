@@ -5,3 +5,5 @@ tensortrade
 pytse_client
 halo
 quantstats
+pandas_ta
+ta-lib
