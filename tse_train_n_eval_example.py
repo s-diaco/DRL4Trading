@@ -53,7 +53,8 @@ n_episodes = 20
 window_size = 30
 memory_capacity = n_steps * 10
 save_path = "agents/"
-n_bins = 5  # Number of bins to partition the dataset evenly in order to evaluate class sparsity.
+# Number of bins to partition the dataset evenly in order to evaluate class sparsity.
+n_bins = 5
 seed = 1337
 n_symbols = 5  # Number of symbols to download.
 days_to_dl = 500
@@ -185,8 +186,7 @@ def fix_dataset_inconsistencies(dataframe: pd.DataFrame, fill_value=None):
     if fill_value:
         dataframe.iloc[0, :] = dataframe.iloc[0, :].fillna(fill_value)
     # TODO: fillna just for index? / is .dropna(axis="columns") necessary?
-    dataframe = dataframe.fillna(axis="index", method="ffill")
-    dataframe = dataframe.fillna(axis="index", method="bfill").dropna(axis="columns")
+    dataframe = dataframe.ffill(axis="index").bfill(axis="index").dropna(axis="columns")
     # dataframe = dataframe.set_index("data")
     # dataframe.index = pd.DatetimeIndex(dataframe.index)
     return dataframe
@@ -333,7 +333,7 @@ def generate_features(data: pd.DataFrame):
     )
 
     # Concatenate both manually and automatically generated features
-    data = pd.concat([data, features], axis="columns").fillna(method="ffill")
+    data = pd.concat([data, features], axis="columns").ffill()
 
     # Remove potential column duplicates
     data = data.loc[:, ~data.columns.duplicated()]
@@ -350,7 +350,7 @@ def generate_features(data: pd.DataFrame):
     )
 
     # Concatenate both manually and automatically generated features
-    data = pd.concat([data, df], axis="columns").fillna(method="pad")
+    data = pd.concat([data, df], axis="columns").ffill()
 
     # Remove potential column duplicates
     data = data.loc[:, ~data.columns.duplicated()]
@@ -359,7 +359,7 @@ def generate_features(data: pd.DataFrame):
     df_quantstats = generate_all_default_quantstats_features(data)
 
     # Concatenate both manually and automatically generated features
-    data = pd.concat([data, df_quantstats], axis="columns").fillna(method="pad")
+    data = pd.concat([data, df_quantstats], axis="columns").ffill()
 
     # Remove potential column duplicates
     data = data.loc[:, ~data.columns.duplicated()]
@@ -474,18 +474,18 @@ for sym_data in data.values():
     sym_data.describe(include="all")
     import matplotlib.pyplot as plt
 
-    plt.plot(get_returns(data, column="close"))
+    plt.plot(get_returns(sym_data, column="close"))
     plt.show()
-    is_data_predictible(data, "close")
+    is_data_predictible(sym_data, "close")
     # Percentage of the dataset generating rewards
     # (keep between 5% to 15% or just rely on is_data_predictible())
-    plt.plot(precalculate_ground_truths(data, column="close").iloc[:1000])
+    plt.plot(precalculate_ground_truths(sym_data, column="close").iloc[:1000])
     plt.show()
     percent_rewardable = (
         str(
             round(
                 100
-                + precalculate_ground_truths(data, column="close")
+                + precalculate_ground_truths(sym_data, column="close")
                 .value_counts()
                 .pct_change()
                 .iloc[-1]
@@ -504,32 +504,30 @@ for symbol, split_tpl in splitted_data.items():
     X_train_test = pd.concat([X_train, X_test], axis="index")
     # threshold = estimate_percent_gains(X_train_test, 'close')
     threshold = estimate_percent_gains(X_train, "close")
-    threshold
-# %%
-data = next(iter(data.values()))
-X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(split_data.values()))
+    print(threshold)
 # %% [markdown]
 # ## Implement basic feature engineering
 
-# %%
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 
 from feature_engine.selection import SelectBySingleFeaturePerformance
 
-# %%
 rf = RandomForestClassifier(n_estimators=100, random_state=seed, n_jobs=6)
 
 sel = SelectBySingleFeaturePerformance(
     variables=None, estimator=rf, scoring="roc_auc", cv=5, threshold=0.5
 )
+for X_train, _, _, _, _, _ in splitted_data.values():
+    sel.fit(X_train, precalculate_ground_truths(X_train, column="close"))
+    feature_performance = pd.Series(sel.feature_performance_).sort_values(
+        ascending=False
+    )
+    print(feature_performance)
 
-sel.fit(X_train, precalculate_ground_truths(X_train, column="close"))
-
-# %%
-feature_performance = pd.Series(sel.feature_performance_).sort_values(ascending=False)
-feature_performance
-
+# %% checkpoint
+data = next(iter(data.values()))
+X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
 # %%
 feature_performance.plot.bar(figsize=(20, 5))
 plt.title("Performance of ML models trained with individual features")
@@ -537,18 +535,18 @@ plt.ylabel("roc-auc")
 
 # %%
 features_to_drop = sel.features_to_drop_
-features_to_drop
+print(features_to_drop)
 
 # %%
 to_drop = list(set(features_to_drop) - set(["open", "high", "low", "close", "volume"]))
-len(to_drop)
+print(len(to_drop))
 
 # %%
 X_train = X_train.drop(columns=to_drop)
 X_test = X_test.drop(columns=to_drop)
 X_valid = X_valid.drop(columns=to_drop)
 
-X_train.shape, X_test.shape, X_valid.shape
+print(X_train.shape, X_test.shape, X_valid.shape)
 
 # %%
 X_train.columns.tolist()
@@ -556,7 +554,6 @@ X_train.columns.tolist()
 # %% [markdown]
 # ## Normalize the dataset subsets to make the model converge faster
 
-# %%
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 scaler_type = MinMaxScaler

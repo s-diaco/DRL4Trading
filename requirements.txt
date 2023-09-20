@@ -7,3 +7,4 @@ halo
 quantstats
 pandas_ta
 ta-lib
+feature_engine
