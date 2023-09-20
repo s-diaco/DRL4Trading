@@ -182,14 +182,11 @@ def fix_dataset_inconsistencies(dataframe: pd.DataFrame, fill_value=None):
     dataframe = dataframe.replace([-np.inf, np.inf], np.nan)
 
     # This is done to avoid filling middle holes with backfilling.
-    if fill_value is None:
-        dataframe.iloc[0, :] = dataframe.apply(
-            lambda column: column.iloc[column.first_valid_index()], axis="index"
-        )
-    else:
+    if fill_value:
         dataframe.iloc[0, :] = dataframe.iloc[0, :].fillna(fill_value)
-    # TODO: fillna just for index?
-    dataframe = dataframe.fillna(axis="index", method="pad").dropna(axis="columns")
+    # TODO: fillna just for index? / is .dropna(axis="columns") necessary?
+    dataframe = dataframe.fillna(axis="index", method="ffill")
+    dataframe = dataframe.fillna(axis="index", method="bfill").dropna(axis="columns")
     # dataframe = dataframe.set_index("data")
     # dataframe.index = pd.DatetimeIndex(dataframe.index)
     return dataframe
@@ -388,7 +385,7 @@ sel = VarianceThreshold(threshold=(0.8 * (1 - 0.8)))
 def rem_low_variance(data, sel):
     sel.fit(data)
     # TODO: does it change data?
-    data[data.columns[sel.get_support(indices=True)].append("date")]
+    data[data.columns[sel.get_support(indices=True)]]
     return data
 
 
@@ -416,13 +413,13 @@ def split_data(data: pd.DataFrame):
     return X_train, X_test, X_valid, y_train, y_test, y_valid
 
 
-splitt_data = {symbol: split_data(df) for symbol, df in data.items()}
+splitted_data = {symbol: split_data(df) for symbol, df in data.items()}
 
 import os
 
 cwd = os.getcwd()
-for symbol, split_tpl in splitt_data:
-    X_train, X_test, X_valid = split_tpl
+for symbol, split_tpl in splitted_data.items():
+    X_train, X_test, X_valid, _, _, _ = split_tpl
     train_csv = os.path.join(cwd, f"{symbol}_train.csv")
     test_csv = os.path.join(cwd, f"{symbol}_test.csv")
     valid_csv = os.path.join(cwd, f"{symbol}_valid.csv")
@@ -502,7 +499,7 @@ for sym_data in data.values():
 
 # %% [markdown]
 # ## Threshold to pass to AnomalousProfit reward scheme
-for symbol, split_tpl in splitt_data.items():
+for symbol, split_tpl in splitted_data.items():
     X_train, X_test, _, _, _, _ = split_tpl
     X_train_test = pd.concat([X_train, X_test], axis="index")
     # threshold = estimate_percent_gains(X_train_test, 'close')
