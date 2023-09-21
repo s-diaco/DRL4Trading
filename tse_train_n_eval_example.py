@@ -235,7 +235,7 @@ def generate_all_default_quantstats_features(data):
 
     for indicator_name in indicators_list:
         try:
-            print(indicator_name)
+            print(f"genertating qt indicator: {indicator_name}")
             indicator = qs.stats.__dict__[indicator_name](df["close"])
             if isinstance(indicator, pd.Series):
                 indicator = indicator.to_frame(name=indicator_name)
@@ -253,20 +253,22 @@ def generate_features(data: pd.DataFrame):
     strategies = [
         "candles",
         "cycles",
-        "momentum",
-        "overlap",
+        # "momentum",
+        # "overlap",
         "performance",
         "statistics",
-        "trend",
-        "volatility",
+        # "trend",
+        # "volatility",
         "volume",
     ]
 
-    # cores = os.cpu_count()
-    # df.ta.cores = cores
-    df.ta.cores = 0
+    cores = os.cpu_count()
+    # cores = 0
+    df.ta.cores = cores
+    print(f"using {df.ta.cores} cpu cores")
 
     for strategy in strategies:
+        print(f"studying strategy: {strategy}")
         df.ta.study(strategy, exclude=["kvo"])
 
     # Generate all default indicators from ta library
@@ -470,15 +472,17 @@ def is_data_predictible(data, column):
     return not is_null(data) & is_sparse(data, column)
 
 
-for sym_data in data.values():
+for symbol, sym_data in data.items():
     sym_data.describe(include="all")
     import matplotlib.pyplot as plt
 
+    plt.title(f"returns for {symbol}")
     plt.plot(get_returns(sym_data, column="close"))
     plt.show()
     is_data_predictible(sym_data, "close")
     # Percentage of the dataset generating rewards
     # (keep between 5% to 15% or just rely on is_data_predictible())
+    plt.title(f"% of {symbol} dataset generating rewards. keep between 5% to 15%.")
     plt.plot(precalculate_ground_truths(sym_data, column="close").iloc[:1000])
     plt.show()
     percent_rewardable = (
@@ -504,7 +508,7 @@ for symbol, split_tpl in splitted_data.items():
     X_train_test = pd.concat([X_train, X_test], axis="index")
     # threshold = estimate_percent_gains(X_train_test, 'close')
     threshold = estimate_percent_gains(X_train, "close")
-    print(threshold)
+    print(f"threshold: {threshold} ({symbol})")
 # %% [markdown]
 # ## Implement basic feature engineering
 
@@ -523,6 +527,7 @@ for X_train, _, _, _, _, _ in splitted_data.values():
     feature_performance = pd.Series(sel.feature_performance_).sort_values(
         ascending=False
     )
+    print("feature performances for one symbol:")
     print(feature_performance)
 
 # %% checkpoint
@@ -535,11 +540,10 @@ plt.ylabel("roc-auc")
 
 # %%
 features_to_drop = sel.features_to_drop_
-print(features_to_drop)
-
 # %%
 to_drop = list(set(features_to_drop) - set(["open", "high", "low", "close", "volume"]))
-print(len(to_drop))
+print(f"{len(to_drop)} features will be dropped:")
+print(features_to_drop)
 
 # %%
 X_train = X_train.drop(columns=to_drop)
