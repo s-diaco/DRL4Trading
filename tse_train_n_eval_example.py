@@ -262,8 +262,8 @@ def generate_features(data: pd.DataFrame):
         "volume",
     ]
 
-    cores = os.cpu_count()
-    # cores = 0
+    # cores = os.cpu_count()
+    cores = 0
     df.ta.cores = cores
     print(f"using {df.ta.cores} cpu cores")
 
@@ -531,7 +531,7 @@ for symbol, splitted_dfs in splitted_data.items():
     )
     print(f"feature performances for {symbol}:")
     print(feature_performances[symbol])
-feature_performance = pd.DataFrame(feature_performance).mean(axis=1)
+feature_performance = pd.DataFrame(feature_performances).mean(axis=1)
 # %%
 # TODO: was sorted before plotting
 feature_performance.plot.bar(figsize=(20, 5))
