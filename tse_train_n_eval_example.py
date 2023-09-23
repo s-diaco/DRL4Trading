@@ -522,18 +522,18 @@ rf = RandomForestClassifier(n_estimators=100, random_state=seed, n_jobs=6)
 sel = SelectBySingleFeaturePerformance(
     variables=None, estimator=rf, scoring="roc_auc", cv=5, threshold=0.5
 )
-for X_train, _, _, _, _, _ in splitted_data.values():
+feature_performances = {}
+for symbol, splitted_dfs in splitted_data.items():
+    X_train, _, _, _, _, _ = splitted_dfs
     sel.fit(X_train, precalculate_ground_truths(X_train, column="close"))
-    feature_performance = pd.Series(sel.feature_performance_).sort_values(
+    feature_performances[symbol] = pd.Series(sel.feature_performance_).sort_values(
         ascending=False
     )
-    print("feature performances for one symbol:")
-    print(feature_performance)
-
-# %% checkpoint
-data = next(iter(data.values()))
-X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
+    print(f"feature performances for {symbol}:")
+    print(feature_performances[symbol])
+feature_performance = pd.DataFrame(feature_performance).mean(axis=1)
 # %%
+# TODO: was sorted before plotting
 feature_performance.plot.bar(figsize=(20, 5))
 plt.title("Performance of ML models trained with individual features")
 plt.ylabel("roc-auc")
@@ -544,6 +544,10 @@ features_to_drop = sel.features_to_drop_
 to_drop = list(set(features_to_drop) - set(["open", "high", "low", "close", "volume"]))
 print(f"{len(to_drop)} features will be dropped:")
 print(features_to_drop)
+
+# %% checkpoint
+data = next(iter(data.values()))
+X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
 
 # %%
 X_train = X_train.drop(columns=to_drop)
