@@ -544,20 +544,23 @@ features_to_drop = sel.features_to_drop_
 to_drop = list(set(features_to_drop) - set(["open", "high", "low", "close", "volume"]))
 print(f"{len(to_drop)} features will be dropped:")
 print(features_to_drop)
+# %%
+cloumns_set = set()
+for symbol, splitted_dfs in splitted_data.items():
+    X_train, X_test, X_valid, _, _, _ = splitted_dfs
+    X_train = X_train.drop(columns=to_drop)
+    X_test = X_test.drop(columns=to_drop)
+    X_valid = X_valid.drop(columns=to_drop)
+
+    print(f"{symbol} shape (train, test, validation):")
+    print(X_train.shape, X_test.shape, X_valid.shape)
+    print("train columns:")
+    sym_columns = X_train.columns.tolist()
+    print(sym_columns)
 
 # %% checkpoint
 data = next(iter(data.values()))
 X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
-
-# %%
-X_train = X_train.drop(columns=to_drop)
-X_test = X_test.drop(columns=to_drop)
-X_valid = X_valid.drop(columns=to_drop)
-
-print(X_train.shape, X_test.shape, X_valid.shape)
-
-# %%
-X_train.columns.tolist()
 
 # %% [markdown]
 # ## Normalize the dataset subsets to make the model converge faster
