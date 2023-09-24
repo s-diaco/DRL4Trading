@@ -532,8 +532,8 @@ for symbol, splitted_dfs in splitted_data.items():
     print(f"feature performances for {symbol}:")
     print(feature_performances[symbol])
 feature_performance = pd.DataFrame(feature_performances).mean(axis=1)
+feature_performance = feature_performance.sort_values(ascending=False)
 # %%
-# TODO: was sorted before plotting
 feature_performance.plot.bar(figsize=(20, 5))
 plt.title("Performance of ML models trained with individual features")
 plt.ylabel("roc-auc")
