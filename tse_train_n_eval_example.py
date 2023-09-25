@@ -378,7 +378,6 @@ data = {tse_symbol: generate_features(tse_df) for tse_symbol, tse_df in data.ite
 
 # %% [markdown]
 # ## Remove features with low variance before splitting the dataset
-# TODO: What is this?
 from sklearn.feature_selection import VarianceThreshold
 
 sel = VarianceThreshold(threshold=(0.8 * (1 - 0.8)))
@@ -387,13 +386,19 @@ sel = VarianceThreshold(threshold=(0.8 * (1 - 0.8)))
 def rem_low_variance(data, sel):
     sel.fit(data)
     # TODO: does it change data?
-    data[data.columns[sel.get_support(indices=True)]]
+    data = data[data.columns[sel.get_support(indices=True)]]
     return data
 
 
 data = {
     tse_symbol: rem_low_variance(tse_df, sel) for tse_symbol, tse_df in data.items()
 }
+comm_cols = set()
+for prc_df in data.values():
+    comm_cols = (
+        comm_cols.intersection(prc_df.columns) if comm_cols else set(prc_df.columns)
+    )
+data = {symbol: prc_df[list(comm_cols)] for symbol, prc_df in data.items()}
 
 # %% [markdown]
 # ## Split datasets
@@ -503,11 +508,12 @@ for symbol, sym_data in data.items():
 
 # %% [markdown]
 # ## Threshold to pass to AnomalousProfit reward scheme
+threshhold = {}
 for symbol, split_tpl in splitted_data.items():
     X_train, X_test, _, _, _, _ = split_tpl
     X_train_test = pd.concat([X_train, X_test], axis="index")
     # threshold = estimate_percent_gains(X_train_test, 'close')
-    threshold = estimate_percent_gains(X_train, "close")
+    threshhold[symbol] = estimate_percent_gains(X_train, "close")
     print(f"threshold: {threshold} ({symbol})")
 # %% [markdown]
 # ## Implement basic feature engineering
@@ -523,6 +529,7 @@ sel = SelectBySingleFeaturePerformance(
     variables=None, estimator=rf, scoring="roc_auc", cv=5, threshold=0.5
 )
 feature_performances = {}
+features_to_drop = set()
 for symbol, splitted_dfs in splitted_data.items():
     X_train, _, _, _, _, _ = splitted_dfs
     sel.fit(X_train, precalculate_ground_truths(X_train, column="close"))
@@ -531,32 +538,27 @@ for symbol, splitted_dfs in splitted_data.items():
     )
     print(f"feature performances for {symbol}:")
     print(feature_performances[symbol])
+    features_to_drop |= set(sel.features_to_drop_)
 feature_performance = pd.DataFrame(feature_performances).mean(axis=1)
 feature_performance = feature_performance.sort_values(ascending=False)
 # %%
 feature_performance.plot.bar(figsize=(20, 5))
 plt.title("Performance of ML models trained with individual features")
 plt.ylabel("roc-auc")
-
 # %%
-features_to_drop = sel.features_to_drop_
-# %%
-to_drop = list(set(features_to_drop) - set(["open", "high", "low", "close", "volume"]))
-print(f"{len(to_drop)} features will be dropped:")
-print(features_to_drop)
-# %%
+to_drop = list(features_to_drop - set(["open", "high", "low", "close", "volume"]))
+print(f"removing {len(to_drop)} features with low performance:")
+print(list(features_to_drop))
 cloumns_set = set()
 for symbol, splitted_dfs in splitted_data.items():
-    X_train, X_test, X_valid, _, _, _ = splitted_dfs
+    X_train, X_test, X_valid, y_train, y_test, y_valid = splitted_dfs
     X_train = X_train.drop(columns=to_drop)
     X_test = X_test.drop(columns=to_drop)
     X_valid = X_valid.drop(columns=to_drop)
 
     print(f"{symbol} shape (train, test, validation):")
     print(X_train.shape, X_test.shape, X_valid.shape)
-    print("train columns:")
-    sym_columns = X_train.columns.tolist()
-    print(sym_columns)
+    splitted_data[symbol] = (X_train, X_test, X_valid, y_train, y_test, y_valid)
 
 # %% checkpoint
 data = next(iter(data.values()))
