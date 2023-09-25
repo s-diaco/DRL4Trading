@@ -508,12 +508,12 @@ for symbol, sym_data in data.items():
 
 # %% [markdown]
 # ## Threshold to pass to AnomalousProfit reward scheme
-threshhold = {}
+threshold = {}
 for symbol, split_tpl in splitted_data.items():
     X_train, X_test, _, _, _, _ = split_tpl
     X_train_test = pd.concat([X_train, X_test], axis="index")
     # threshold = estimate_percent_gains(X_train_test, 'close')
-    threshhold[symbol] = estimate_percent_gains(X_train, "close")
+    threshold[symbol] = estimate_percent_gains(X_train, "close")
     print(f"threshold: {threshold} ({symbol})")
 # %% [markdown]
 # ## Implement basic feature engineering
