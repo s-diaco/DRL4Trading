@@ -560,10 +560,6 @@ for symbol, splitted_dfs in splitted_data.items():
     print(X_train.shape, X_test.shape, X_valid.shape)
     splitted_data[symbol] = (X_train, X_test, X_valid, y_train, y_test, y_valid)
 
-# %% checkpoint
-data = next(iter(data.values()))
-X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
-
 # %% [markdown]
 # ## Normalize the dataset subsets to make the model converge faster
 
@@ -644,14 +640,25 @@ def normalize_data(X_train, X_test, X_valid):
 
 
 # %%
-(
-    train_test_scalers,
-    train_test_valid_scalers,
-    X_train_scaled,
-    X_test_scaled,
-    X_valid_scaled,
-    X_valid_scaled_leaking,
-) = normalize_data(X_train, X_test, X_valid)
+for symbol, splitted_dfs in splitted_data.items():
+    X_train, X_test, X_valid, y_train, y_test, y_valid = splitted_dfs
+    (
+        train_test_scalers,
+        train_test_valid_scalers,
+        X_train_scaled,
+        X_test_scaled,
+        X_valid_scaled,
+        X_valid_scaled_leaking,
+    ) = normalize_data(X_train, X_test, X_valid)
+    # TODO: what about other values
+    splitted_data[symbol] = (
+        X_train_scaled,
+        X_test_scaled,
+        X_valid_scaled,
+        y_train,
+        y_test,
+        y_valid,
+    )
 
 # %% [markdown]
 # ## Write a reward scheme encouraging rare volatile upside trades
@@ -790,6 +797,10 @@ from tensortrade.oms.orders import TradeType
 
 # TODO: adjust according to your commission percentage, if present
 commission = 0.001
+# %% checkpoint
+data = next(iter(data.values()))
+X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
+
 price = Stream.source(list(X_train["close"]), dtype="float").rename("USD-BTC")
 # bitstamp_options = ExchangeOptions(commission=commission)
 # bitstamp = Exchange("bitstamp",
