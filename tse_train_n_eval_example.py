@@ -593,11 +593,11 @@ def normalize_data(X_train, X_test, X_valid):
     X_train_test = pd.concat([X_train, X_test], axis="index")
     X_train_test_valid = pd.concat([X_train_test, X_valid], axis="index")
 
-    X_train_test_dates = X_train_test[["date"]]
-    X_train_test_valid_dates = X_train_test_valid[["date"]]
+    X_train_test_dates = pd.Series(X_train_test.index)
+    X_train_test_valid_dates = pd.Series(X_train_test_valid.index)
 
-    X_train_test = X_train_test.drop(columns=["date"])
-    X_train_test_valid = X_train_test_valid.drop(columns=["date"])
+    X_train_test = X_train_test.drop(columns=["date"], errors="ignore")
+    X_train_test_valid = X_train_test_valid.drop(columns=["date"], errors="ignore")
 
     train_test_scalers = get_feature_scalers(X_train_test, scaler_type=scaler_type)
     train_test_valid_scalers = get_feature_scalers(
@@ -640,6 +640,7 @@ def normalize_data(X_train, X_test, X_valid):
 
 
 # %%
+splitted_data_unscaled = {}
 for symbol, splitted_dfs in splitted_data.items():
     X_train, X_test, X_valid, y_train, y_test, y_valid = splitted_dfs
     (
@@ -659,6 +660,7 @@ for symbol, splitted_dfs in splitted_data.items():
         y_test,
         y_valid,
     )
+    splitted_data_unscaled[symbol] = (X_train, X_test, X_valid)
 
 # %% [markdown]
 # ## Write a reward scheme encouraging rare volatile upside trades
@@ -775,8 +777,6 @@ class PenalizedProfit(TensorTradeRewardScheme):
 # %% [markdown]
 # ## TODO: implement tuning
 
-# %%
-
 
 # %% [markdown]
 # ## Setup Trading Environment
@@ -799,7 +799,10 @@ from tensortrade.oms.orders import TradeType
 commission = 0.001
 # %% checkpoint
 data = next(iter(data.values()))
-X_train, X_test, X_valid, y_train, y_test, y_valid = next(iter(splitted_data.values()))
+X_train_scaled, X_test_scaled, X_valid_scaled, y_train, y_test, y_valid = next(
+    iter(splitted_data.values())
+)
+X_train, X_test, X_valid = next(iter(splitted_data_unscaled.values()))
 
 price = Stream.source(list(X_train["close"]), dtype="float").rename("USD-BTC")
 # bitstamp_options = ExchangeOptions(commission=commission)
