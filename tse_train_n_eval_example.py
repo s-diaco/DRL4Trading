@@ -262,8 +262,8 @@ def generate_features(data: pd.DataFrame):
         "volume",
     ]
 
-    # cores = os.cpu_count()
-    cores = 0
+    cores = os.cpu_count()
+    # cores = 0
     df.ta.cores = cores
     print(f"using {df.ta.cores} cpu cores")
 
@@ -803,7 +803,8 @@ X_train_scaled, X_test_scaled, X_valid_scaled, y_train, y_test, y_valid = next(
     iter(splitted_data.values())
 )
 X_train, X_test, X_valid = next(iter(splitted_data_unscaled.values()))
-
+threshold = next(iter(threshold.values()))
+# %%
 price = Stream.source(list(X_train["close"]), dtype="float").rename("USD-BTC")
 # bitstamp_options = ExchangeOptions(commission=commission)
 # bitstamp = Exchange("bitstamp",
@@ -828,7 +829,7 @@ feed.compile()
 
 renderer_feed = DataFeed(
     [
-        Stream.source(list(X_train["date"])).rename("date"),
+        Stream.source(list(X_train.index.values)).rename("date"),
         Stream.source(list(X_train["open"]), dtype="float").rename("open"),
         Stream.source(list(X_train["high"]), dtype="float").rename("high"),
         Stream.source(list(X_train["low"]), dtype="float").rename("low"),
@@ -905,11 +906,18 @@ agent.train(
 
 
 # %%
+# TODO: delete
+data = data.reset_index()
+
+
+# %%
 def print_quantstats_full_report(env, data, output="dqn_quantstats"):
     performance = pd.DataFrame.from_dict(
         env.action_scheme.portfolio.performance, orient="index"
     )
-    net_worth = performance["net_worth"].iloc[window_size:]
+    # TODO: delete and use this:
+    # net_worth = performance["net_worth"].iloc[window_size:]
+    net_worth = performance["net_worth"]
     returns = net_worth.pct_change().iloc[1:]
 
     # WARNING! The dates are fake and default parameters are used!
