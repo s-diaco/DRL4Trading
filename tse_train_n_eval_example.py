@@ -48,7 +48,7 @@ absl_logging.set_verbosity("info")
 # %% [markdown]
 # ## Define global variables
 
-n_steps = 1000
+n_steps = 100
 n_episodes = 20
 window_size = 30
 memory_capacity = n_steps * 10
@@ -171,6 +171,7 @@ data = fetch_tse_data(symbol_list=symbols)
 import os
 import numpy as np
 import ta as ta1
+import platform
 import pandas_ta as ta
 
 import quantstats as qs
@@ -262,8 +263,14 @@ def generate_features(data: pd.DataFrame):
         "volume",
     ]
 
-    cores = os.cpu_count()
-    # cores = 0
+    # TODO: delete
+    cores = 0
+    if platform.processor() == "arm":
+        print("Running on Apple Silicon")
+    else:
+        print("Not running on Apple Silicon")
+        cores = os.cpu_count()
+
     df.ta.cores = cores
     print(f"using {df.ta.cores} cpu cores")
 
@@ -915,9 +922,7 @@ def print_quantstats_full_report(env, data, output="dqn_quantstats"):
     performance = pd.DataFrame.from_dict(
         env.action_scheme.portfolio.performance, orient="index"
     )
-    # TODO: delete and use this:
-    # net_worth = performance["net_worth"].iloc[window_size:]
-    net_worth = performance["net_worth"]
+    net_worth = performance["net_worth"].iloc[window_size:]
     returns = net_worth.pct_change().iloc[1:]
 
     # WARNING! The dates are fake and default parameters are used!
