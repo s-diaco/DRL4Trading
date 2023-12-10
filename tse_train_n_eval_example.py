@@ -48,7 +48,7 @@ absl_logging.set_verbosity("info")
 # %% [markdown]
 # ## Define global variables
 
-n_steps = 100
+n_steps = 1000
 n_episodes = 20
 window_size = 30
 memory_capacity = n_steps * 10
@@ -930,7 +930,10 @@ def print_quantstats_full_report(env, data, output="dqn_quantstats"):
         start=data["date"].iloc[0], freq="1d", periods=returns.size
     )
 
-    qs.reports.full(returns)
+    qs.reports.full(
+        returns,
+        periods_per_year=10,  # TODO: delete
+    )
     qs.reports.html(returns, output=output + ".html")
 
 
