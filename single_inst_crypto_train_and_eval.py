@@ -66,7 +66,6 @@ data
 import os
 import numpy as np
 import ta as ta1
-import pandas_ta as ta
 
 import quantstats as qs
 

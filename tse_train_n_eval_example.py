@@ -172,7 +172,6 @@ import os
 import numpy as np
 import ta as ta1
 import platform
-import pandas_ta as ta
 
 import quantstats as qs
 
