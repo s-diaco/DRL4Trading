@@ -3,5 +3,9 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "python.analysis.autoImportCompletions": true,
+    "jupyter.debugJustMyCode": false,
+    "jupyter.interactiveWindow.textEditor.executeSelection": true,
+    "jupyter.themeMatplotlibPlots": false
 }
